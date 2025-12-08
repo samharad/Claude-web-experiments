@@ -133,9 +133,10 @@ def compare_benchmarks(python_results, julia_results):
                     print(f"    Overhead: {overhead_multi:.1f}%")
 
                     # Compare single vs multiple overhead
+                    overhead_delta = ((jl_multi['mean_time'] - py_multi['mean_time']) -
+                                     (jl_single['mean_time'] - py_single['mean_time'])) * 1000
                     print(f"  Bridge overhead impact: {overhead_multi - overhead_single:.1f}% "
-                          f"(+{((jl_multi['mean_time'] - py_multi['mean_time']) -
-                               (jl_single['mean_time'] - py_single['mean_time'])) * 1000:.2f} ms)")
+                          f"(+{overhead_delta:.2f} ms)")
 
                 print()
 

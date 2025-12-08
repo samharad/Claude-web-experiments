@@ -1,0 +1,47 @@
+================================================================================
+TIKTOKEN BENCHMARK REPORT: Python vs Julia→Python
+================================================================================
+
+Encoding: gpt2
+Test configurations: 8
+
+--------------------------------------------------------------------------------
+Benchmark                 Python          Julia           Overhead       
+--------------------------------------------------------------------------------
+large_multiple               4.886 ms       7.228 ms      47.9%
+large_single                 2.452 ms       3.120 ms      27.2%
+medium_multiple              1.563 ms       2.840 ms      81.7%
+medium_single                0.419 ms       0.565 ms      34.8%
+small_multiple               0.851 ms       2.150 ms     152.6%
+small_single                 0.143 ms       0.296 ms     107.0%
+very_large_multiple         25.668 ms      32.557 ms      26.8%
+very_large_single           18.224 ms      21.446 ms      17.7%
+--------------------------------------------------------------------------------
+
+DETAILED ANALYSIS
+================================================================================
+
+SMALL TEXT:
+  Tokens: 102
+  Single call overhead: 107.0%
+  Multiple calls overhead: 152.6%
+  Bridge amplification: 45.7%
+
+MEDIUM TEXT:
+  Tokens: 1024
+  Single call overhead: 34.8%
+  Multiple calls overhead: 81.7%
+  Bridge amplification: 46.9%
+
+LARGE TEXT:
+  Tokens: 10240
+  Single call overhead: 27.2%
+  Multiple calls overhead: 47.9%
+  Bridge amplification: 20.7%
+
+VERY_LARGE TEXT:
+  Tokens: 102400
+  Single call overhead: 17.7%
+  Multiple calls overhead: 26.8%
+  Bridge amplification: 9.2%
+
