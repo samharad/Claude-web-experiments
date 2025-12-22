@@ -204,6 +204,24 @@
 
         shareButton.addEventListener('click', async () => {
             const url = window.location.href;
+
+            // Try Web Share API first (better for mobile)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Rotatable Dial',
+                        url: url
+                    });
+                    return;
+                } catch (err) {
+                    // User cancelled or share failed, fall back to clipboard
+                    if (err.name === 'AbortError') {
+                        return; // User cancelled, don't show error
+                    }
+                }
+            }
+
+            // Fall back to clipboard API
             try {
                 await navigator.clipboard.writeText(url);
                 copyMessage.classList.add('show');
@@ -212,6 +230,8 @@
                 }, 2000);
             } catch (err) {
                 console.error('Failed to copy:', err);
+                // Last resort: show a prompt with the URL
+                prompt('Copy this link:', url);
             }
         });
     </script>
