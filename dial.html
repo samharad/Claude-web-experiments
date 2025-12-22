@@ -34,8 +34,10 @@
             transition: background-color 0.2s;
         }
 
-        #share-button:hover {
-            background-color: #e0e0e0;
+        @media (hover: hover) {
+            #share-button:hover {
+                background-color: #e0e0e0;
+            }
         }
 
         #copy-message {
@@ -49,6 +51,7 @@
             transition: opacity 0.3s;
             pointer-events: none;
             margin-top: 10px;
+            white-space: nowrap;
         }
 
         #copy-message.show {
@@ -202,67 +205,42 @@
         const shareButton = document.getElementById('share-button');
         const copyMessage = document.getElementById('copy-message');
 
-        shareButton.addEventListener('click', async (e) => {
+        function handleShare(e) {
+            e.preventDefault();
             e.stopPropagation();
             const url = window.location.href;
 
-            // Try Web Share API first (better for mobile)
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: 'Rotatable Dial',
-                        url: url
-                    });
-                    return;
-                } catch (err) {
-                    // User cancelled or share failed, fall back to clipboard
-                    if (err.name === 'AbortError') {
-                        return; // User cancelled, don't show error
-                    }
-                }
+            // Create temporary textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+
+            // Select and copy
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile
+
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (err) {
+                console.error('Copy failed:', err);
             }
 
-            // Fall back to clipboard API
-            try {
-                await navigator.clipboard.writeText(url);
+            document.body.removeChild(textarea);
+
+            if (success) {
                 copyMessage.classList.add('show');
                 setTimeout(() => {
                     copyMessage.classList.remove('show');
                 }, 2000);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-                // Last resort: create a temporary input for copying
-                const input = document.createElement('input');
-                input.value = url;
-                input.style.position = 'fixed';
-                input.style.top = '50%';
-                input.style.left = '50%';
-                input.style.transform = 'translate(-50%, -50%)';
-                input.style.width = '80%';
-                input.style.padding = '10px';
-                input.style.fontSize = '16px';
-                input.style.zIndex = '1000';
-                document.body.appendChild(input);
-                input.select();
-                input.setSelectionRange(0, 99999);
-
-                // Try to copy
-                try {
-                    document.execCommand('copy');
-                    copyMessage.classList.add('show');
-                    setTimeout(() => {
-                        copyMessage.classList.remove('show');
-                    }, 2000);
-                } catch (e) {
-                    // Just leave the input visible so user can copy manually
-                }
-
-                // Remove input after 3 seconds
-                setTimeout(() => {
-                    document.body.removeChild(input);
-                }, 3000);
             }
-        });
+        }
+
+        shareButton.addEventListener('click', handleShare);
+        shareButton.addEventListener('touchend', handleShare);
     </script>
 </body>
 </html>
