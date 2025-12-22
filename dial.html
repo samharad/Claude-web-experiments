@@ -202,7 +202,8 @@
         const shareButton = document.getElementById('share-button');
         const copyMessage = document.getElementById('copy-message');
 
-        shareButton.addEventListener('click', async () => {
+        shareButton.addEventListener('click', async (e) => {
+            e.stopPropagation();
             const url = window.location.href;
 
             // Try Web Share API first (better for mobile)
@@ -230,8 +231,36 @@
                 }, 2000);
             } catch (err) {
                 console.error('Failed to copy:', err);
-                // Last resort: show a prompt with the URL
-                prompt('Copy this link:', url);
+                // Last resort: create a temporary input for copying
+                const input = document.createElement('input');
+                input.value = url;
+                input.style.position = 'fixed';
+                input.style.top = '50%';
+                input.style.left = '50%';
+                input.style.transform = 'translate(-50%, -50%)';
+                input.style.width = '80%';
+                input.style.padding = '10px';
+                input.style.fontSize = '16px';
+                input.style.zIndex = '1000';
+                document.body.appendChild(input);
+                input.select();
+                input.setSelectionRange(0, 99999);
+
+                // Try to copy
+                try {
+                    document.execCommand('copy');
+                    copyMessage.classList.add('show');
+                    setTimeout(() => {
+                        copyMessage.classList.remove('show');
+                    }, 2000);
+                } catch (e) {
+                    // Just leave the input visible so user can copy manually
+                }
+
+                // Remove input after 3 seconds
+                setTimeout(() => {
+                    document.body.removeChild(input);
+                }, 3000);
             }
         });
     </script>
