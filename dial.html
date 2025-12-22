@@ -201,6 +201,12 @@
         const initialAngle = getAngleFromURL();
         updateDialArm(initialAngle);
 
+        // Listen for hash changes
+        window.addEventListener('hashchange', () => {
+            const newAngle = getAngleFromURL();
+            updateDialArm(newAngle);
+        });
+
         // Share button functionality
         const shareButton = document.getElementById('share-button');
         const copyMessage = document.getElementById('copy-message');
