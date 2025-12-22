@@ -44,7 +44,7 @@
         // Read angle from URL on load
         function getAngleFromURL() {
             const hash = window.location.hash.substring(1);
-            const match = hash.match(/angle=([0-9.]+)/);
+            const match = hash.match(/angle=([-0-9.]+)/);
             if (match) {
                 return parseFloat(match[1]);
             }
@@ -58,8 +58,8 @@
 
         // Update dial arm position
         function updateDialArm(angle) {
-            // Convert angle to radians (0 degrees = straight up, clockwise rotation)
-            // Starting from top (270 degrees in standard coordinates)
+            // Convert angle to radians (-90 = left, 0 = up, 90 = right)
+            // Subtract 90 to convert from our system (0 = up) to math coordinates (0 = right)
             const radians = (angle - 90) * Math.PI / 180;
             const armLength = 150;
             const endX = centerX + armLength * Math.cos(radians);
@@ -85,15 +85,12 @@
             // Convert to our coordinate system (0 = up, clockwise)
             angle = angle + 90;
 
-            // Normalize to 0-360
-            if (angle < 0) angle += 360;
+            // Normalize to -180 to 180 range
+            if (angle > 180) angle -= 360;
 
-            // Constrain to 0-180 degrees
-            if (angle > 180 && angle < 270) {
-                angle = 180;
-            } else if (angle >= 270) {
-                angle = 0;
-            }
+            // Constrain to -90 to 90 degrees
+            if (angle < -90) angle = -90;
+            if (angle > 90) angle = 90;
 
             return angle;
         }
