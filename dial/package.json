@@ -1,0 +1,13 @@
+{
+  "name": "dial-generator",
+  "version": "1.0.0",
+  "description": "Generator scripts for dial HTML files and preview images",
+  "private": true,
+  "scripts": {
+    "generate-dial-files": "node generate-dial-files.js",
+    "generate-previews": "node generate-preview-images.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  }
+}

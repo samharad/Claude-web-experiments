@@ -9,244 +9,35 @@
             margin: 0;
             padding: 0;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             background-color: #1a1a1a;
-            gap: 20px;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-
-        #dial-container {
-            cursor: pointer;
-            user-select: none;
-        }
-
-        #share-button {
-            padding: 10px 20px;
-            background-color: #ffffff;
-            color: #1a1a1a;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: background-color 0.2s;
-        }
-
-        @media (hover: hover) {
-            #share-button:hover {
-                background-color: #e0e0e0;
-            }
-        }
-
-        #copy-message {
-            position: absolute;
-            padding: 10px 20px;
-            background-color: #4caf50;
-            color: white;
-            border-radius: 5px;
-            font-size: 14px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            margin-top: 10px;
-            white-space: nowrap;
-        }
-
-        #copy-message.show {
-            opacity: 1;
+        .loading {
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <svg id="dial-container" width="400" height="213" viewBox="40 40 320 170">
-        <!-- Dial base semicircle -->
-        <path d="M 50 200 A 150 150 0 0 1 350 200 Z" fill="#ffffff" stroke="#cccccc" stroke-width="3"/>
-
-        <!-- Center dot -->
-        <circle cx="200" cy="200" r="10" fill="#660000"/>
-
-        <!-- Dial arm -->
-        <line id="dial-arm" x1="200" y1="200" x2="200" y2="50" stroke="#ff0000" stroke-width="8" stroke-linecap="round"/>
-    </svg>
-
-    <div style="position: relative;">
-        <button id="share-button">Share</button>
-        <div id="copy-message">Link copied!</div>
-    </div>
-
+    <div class="loading">Redirecting...</div>
     <script>
-        const dialArm = document.getElementById('dial-arm');
-        const dialContainer = document.getElementById('dial-container');
-        const centerX = 200;
-        const centerY = 200;
-        let isDragging = false;
-        let currentAngle = 0;
+        // Get angle from query parameter
+        const params = new URLSearchParams(window.location.search);
+        let angle = parseInt(params.get('angle')) || 0;
 
-        // Read angle from URL on load
-        function getAngleFromURL() {
-            const hash = window.location.hash.substring(1);
-            const match = hash.match(/angle=([-0-9.]+)/);
-            if (match) {
-                return parseFloat(match[1]);
-            }
-            return 0;
-        }
+        // Constrain angle to valid range
+        if (angle < -90) angle = -90;
+        if (angle > 90) angle = 90;
 
-        // Update URL with current angle
-        function updateURL(angle) {
-            window.location.hash = `angle=${Math.round(angle)}`;
-        }
+        // Generate filename
+        const angleStr = angle < 0 ? `minus${Math.abs(angle)}` : angle.toString();
+        const filename = `dial-${angleStr}.html`;
 
-        // Update dial arm position
-        function updateDialArm(angle) {
-            // Convert angle to radians (-90 = left, 0 = up, 90 = right)
-            // Subtract 90 to convert from our system (0 = up) to math coordinates (0 = right)
-            const radians = (angle - 90) * Math.PI / 180;
-            const armLength = 150;
-            const endX = centerX + armLength * Math.cos(radians);
-            const endY = centerY + armLength * Math.sin(radians);
-
-            dialArm.setAttribute('x2', endX);
-            dialArm.setAttribute('y2', endY);
-            currentAngle = angle;
-        }
-
-        // Calculate angle from mouse position
-        function calculateAngle(clientX, clientY) {
-            const rect = dialContainer.getBoundingClientRect();
-            const viewBoxWidth = 320;
-            const viewBoxHeight = 170;
-            const viewBoxX = 40;
-            const viewBoxY = 40;
-            const scaleX = viewBoxWidth / rect.width;
-            const scaleY = viewBoxHeight / rect.height;
-
-            const x = (clientX - rect.left) * scaleX + viewBoxX - centerX;
-            const y = (clientY - rect.top) * scaleY + viewBoxY - centerY;
-
-            // Calculate angle in degrees (0 = right, counterclockwise)
-            let angle = Math.atan2(y, x) * 180 / Math.PI;
-
-            // Convert to our coordinate system (0 = up, clockwise)
-            angle = angle + 90;
-
-            // Normalize to -180 to 180 range
-            if (angle > 180) angle -= 360;
-
-            // Constrain to -90 to 90 degrees
-            if (angle < -90) angle = -90;
-            if (angle > 90) angle = 90;
-
-            return Math.round(angle);
-        }
-
-        // Mouse event handlers
-        function startDragging(e) {
-            isDragging = true;
-            updateAngle(e);
-        }
-
-        function stopDragging() {
-            isDragging = false;
-        }
-
-        function updateAngle(e) {
-            if (!isDragging && e.type !== 'click') return;
-
-            const angle = calculateAngle(e.clientX, e.clientY);
-            updateDialArm(angle);
-            updateURL(angle);
-        }
-
-        // Touch event handlers
-        function handleTouchStart(e) {
-            e.preventDefault();
-            isDragging = true;
-            const touch = e.touches[0];
-            updateAngle({
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                type: 'touchstart'
-            });
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            if (!isDragging) return;
-            const touch = e.touches[0];
-            updateAngle({
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                type: 'touchmove'
-            });
-        }
-
-        function handleTouchEnd(e) {
-            e.preventDefault();
-            isDragging = false;
-        }
-
-        // Add event listeners
-        dialContainer.addEventListener('mousedown', startDragging);
-        document.addEventListener('mousemove', updateAngle);
-        document.addEventListener('mouseup', stopDragging);
-
-        dialContainer.addEventListener('touchstart', handleTouchStart);
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        document.addEventListener('touchend', handleTouchEnd);
-
-        // Initialize dial position from URL
-        const initialAngle = getAngleFromURL();
-        updateDialArm(initialAngle);
-
-        // Listen for hash changes
-        window.addEventListener('hashchange', () => {
-            const newAngle = getAngleFromURL();
-            updateDialArm(newAngle);
-        });
-
-        // Share button functionality
-        const shareButton = document.getElementById('share-button');
-        const copyMessage = document.getElementById('copy-message');
-
-        function handleShare(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const url = window.location.href;
-
-            // Create temporary textarea
-            const textarea = document.createElement('textarea');
-            textarea.value = url;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-
-            // Select and copy
-            textarea.select();
-            textarea.setSelectionRange(0, 99999); // For mobile
-
-            let success = false;
-            try {
-                success = document.execCommand('copy');
-            } catch (err) {
-                console.error('Copy failed:', err);
-            }
-
-            document.body.removeChild(textarea);
-
-            if (success) {
-                copyMessage.classList.add('show');
-                setTimeout(() => {
-                    copyMessage.classList.remove('show');
-                }, 2000);
-            }
-        }
-
-        shareButton.addEventListener('click', handleShare);
-        shareButton.addEventListener('touchend', handleShare);
+        // Redirect to the appropriate dial file
+        window.location.href = `dial/${filename}`;
     </script>
 </body>
 </html>
