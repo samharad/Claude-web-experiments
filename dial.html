@@ -96,7 +96,7 @@
 
         // Update URL with current angle
         function updateURL(angle) {
-            window.location.hash = `angle=${angle.toFixed(1)}`;
+            window.location.hash = `angle=${Math.round(angle)}`;
         }
 
         // Update dial arm position
@@ -139,7 +139,7 @@
             if (angle < -90) angle = -90;
             if (angle > 90) angle = 90;
 
-            return angle;
+            return Math.round(angle);
         }
 
         // Mouse event handlers
