@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airplane Flight Animation</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f0f0;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #map.animating {
+            cursor: none !important;
+        }
+
+        #map.animating * {
+            cursor: none !important;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            min-width: 250px;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .controls h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 8px;
+            background: #f0f9ff;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #0369a1;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="controls">
+        <h3>Flight Animation</h3>
+
+        <div class="input-group">
+            <label>From (City, Country or Lat, Lon):</label>
+            <input type="text" id="fromInput" value="Athens, Greece" placeholder="e.g., 37.9838, 23.7275">
+        </div>
+
+        <div class="input-group">
+            <label>To (City, Country or Lat, Lon):</label>
+            <input type="text" id="toInput" value="San Francisco, USA" placeholder="e.g., 37.7749, -122.4194">
+        </div>
+
+        <div class="input-group">
+            <label>Duration (seconds):</label>
+            <input type="number" id="durationInput" value="5" min="1" max="30">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" id="startBtn">Start Animation</button>
+            <button class="btn-danger" id="stopBtn" disabled>Stop</button>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Turf.js for great circle calculations -->
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([45, -30], 3);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // State
+        let animationFrame = null;
+        let flightPath = null;
+        let airplaneMarker = null;
+        let startMarker = null;
+        let endMarker = null;
+
+        // Create custom airplane icon
+        const airplaneIcon = L.divIcon({
+            className: 'airplane-icon',
+            html: `<svg width="96" height="96" viewBox="0 0 32 32" style="transform: rotate(0deg); transition: transform 0.1s;">
+                <!-- Fuselage (main body) -->
+                <ellipse cx="16" cy="16" rx="2.5" ry="8" fill="#2563eb" stroke="white" stroke-width="0.5"/>
+                <!-- Wings -->
+                <path d="M 16 12 L 6 14 L 8 16 L 16 15 Z" fill="#2563eb" stroke="white" stroke-width="0.5"/>
+                <path d="M 16 12 L 26 14 L 24 16 L 16 15 Z" fill="#2563eb" stroke="white" stroke-width="0.5"/>
+                <!-- Tail wings -->
+                <path d="M 16 22 L 11 24 L 13 24.5 L 16 23 Z" fill="#2563eb" stroke="white" stroke-width="0.5"/>
+                <path d="M 16 22 L 21 24 L 19 24.5 L 16 23 Z" fill="#2563eb" stroke="white" stroke-width="0.5"/>
+                <!-- Nose cone -->
+                <ellipse cx="16" cy="8.5" rx="1.5" ry="2" fill="#1d4ed8" stroke="white" stroke-width="0.5"/>
+            </svg>`,
+            iconSize: [96, 96],
+            iconAnchor: [48, 48]
+        });
+
+        // Geocoding function using Nominatim
+        async function geocode(query) {
+            // Check if input is already coordinates
+            const coordMatch = query.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+            if (coordMatch) {
+                return [parseFloat(coordMatch[1]), parseFloat(coordMatch[2])];
+            }
+
+            // Otherwise, geocode the location name
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+            );
+            const data = await response.json();
+
+            if (data.length === 0) {
+                throw new Error(`Could not find location: ${query}`);
+            }
+
+            return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        }
+
+        // Calculate great circle route
+        function calculateRoute(from, to, numPoints = 100) {
+            const start = turf.point([from[1], from[0]]); // [lon, lat]
+            const end = turf.point([to[1], to[0]]);
+
+            const line = turf.greatCircle(start, end, { npoints: numPoints });
+
+            return line.geometry.coordinates.map(coord => [coord[1], coord[0]]); // Convert back to [lat, lon]
+        }
+
+        // Calculate bearing between two points
+        function calculateBearing(from, to) {
+            const fromPoint = turf.point([from[1], from[0]]);
+            const toPoint = turf.point([to[1], to[0]]);
+            return turf.bearing(fromPoint, toPoint);
+        }
+
+        // Animate airplane along route
+        function animateFlight(route, duration) {
+            const startTime = Date.now();
+            const totalDuration = duration * 1000; // Convert to milliseconds
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / totalDuration, 1);
+
+                // Calculate current position along route
+                const index = progress * (route.length - 1);
+                const lowerIndex = Math.floor(index);
+                const upperIndex = Math.ceil(index);
+                const fraction = index - lowerIndex;
+
+                const currentPos = route[lowerIndex];
+
+                // Update airplane position
+                if (airplaneMarker) {
+                    airplaneMarker.setLatLng(currentPos);
+
+                    // Calculate and update rotation
+                    if (upperIndex < route.length) {
+                        const bearing = calculateBearing(route[lowerIndex], route[upperIndex]);
+                        const iconElement = airplaneMarker.getElement();
+                        if (iconElement) {
+                            const svg = iconElement.querySelector('svg');
+                            if (svg) {
+                                // SVG points north by default, so just use bearing directly
+                                svg.style.transform = `rotate(${bearing}deg)`;
+                            }
+                        }
+                    }
+                }
+
+                if (progress < 1) {
+                    animationFrame = requestAnimationFrame(animate);
+                } else {
+                    // Animation complete
+                    stopAnimation();
+                }
+            }
+
+            animate();
+        }
+
+        // Start animation
+        async function startAnimation() {
+            try {
+                updateStatus('Geocoding locations...');
+
+                const fromQuery = document.getElementById('fromInput').value;
+                const toQuery = document.getElementById('toInput').value;
+                const duration = parseFloat(document.getElementById('durationInput').value);
+
+                const fromCoords = await geocode(fromQuery);
+                const toCoords = await geocode(toQuery);
+
+                updateStatus('Calculating route...');
+
+                // Calculate route
+                const route = calculateRoute(fromCoords, toCoords);
+
+                // Clear previous markers and paths
+                if (flightPath) map.removeLayer(flightPath);
+                if (airplaneMarker) map.removeLayer(airplaneMarker);
+                if (startMarker) map.removeLayer(startMarker);
+                if (endMarker) map.removeLayer(endMarker);
+
+                // Draw flight path
+                flightPath = L.polyline(route, {
+                    color: '#2563eb',
+                    weight: 2,
+                    opacity: 0.6,
+                    dashArray: '10, 10'
+                }).addTo(map);
+
+                // Add start and end markers
+                startMarker = L.marker(fromCoords, {
+                    icon: L.divIcon({
+                        className: 'start-marker',
+                        html: `<div style="background: #16a34a; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: 600;">${fromQuery}</div>`,
+                        iconSize: [null, null],
+                        iconAnchor: [0, 0]
+                    })
+                }).addTo(map);
+
+                endMarker = L.marker(toCoords, {
+                    icon: L.divIcon({
+                        className: 'end-marker',
+                        html: `<div style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: 600;">${toQuery}</div>`,
+                        iconSize: [null, null],
+                        iconAnchor: [0, 0]
+                    })
+                }).addTo(map);
+
+                // Fit map to show entire route
+                map.fitBounds(flightPath.getBounds(), { padding: [50, 50] });
+
+                // Create airplane marker
+                airplaneMarker = L.marker(route[0], { icon: airplaneIcon }).addTo(map);
+
+                updateStatus('Animating...');
+
+                // Update button states
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+
+                // Hide controls and cursor
+                document.querySelector('.controls').classList.add('hidden');
+                document.getElementById('map').classList.add('animating');
+
+                // Start animation after controls are fully hidden (wait for CSS transition)
+                setTimeout(() => animateFlight(route, duration), 400);
+
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`);
+                console.error(error);
+            }
+        }
+
+        // Stop animation
+        function stopAnimation() {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+
+            // Show controls and cursor again
+            document.querySelector('.controls').classList.remove('hidden');
+            document.getElementById('map').classList.remove('animating');
+
+            updateStatus('Animation stopped');
+        }
+
+
+        // Update status message
+        function updateStatus(message) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startAnimation);
+        document.getElementById('stopBtn').addEventListener('click', stopAnimation);
+
+        // Auto-run animation on load
+        setTimeout(() => startAnimation(), 500);
+    </script>
+</body>
+</html>
