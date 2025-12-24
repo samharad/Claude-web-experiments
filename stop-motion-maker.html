@@ -271,12 +271,18 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "@ffmpeg/ffmpeg": "https://esm.sh/@ffmpeg/ffmpeg@0.12.10",
+            "@ffmpeg/util": "https://esm.sh/@ffmpeg/util@0.12.1"
+        }
+    }
+    </script>
 
-    <script>
-        const { FFmpeg } = FFmpegWASM;
-        const { fetchFile, toBlobURL } = FFmpegUtil;
+    <script type="module">
+        import { FFmpeg } from '@ffmpeg/ffmpeg';
+        import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
         let frames = [];
         let ffmpeg = null;
@@ -436,18 +442,18 @@
         }
 
         // Delete frame
-        window.deleteFrame = function(id) {
+        function deleteFrame(id) {
             frames = frames.filter(f => f.id != id);
             renderFrames();
-        };
+        }
 
         // Update duration
-        window.updateDuration = function(id, duration) {
+        function updateDuration(id, duration) {
             const frame = frames.find(f => f.id == id);
             if (frame) {
                 frame.duration = parseInt(duration);
             }
-        };
+        }
 
         // Clear all
         elements.clearBtn.addEventListener('click', () => {
@@ -569,6 +575,10 @@
 
         // Initial render
         renderFrames();
+
+        // Expose functions globally for inline event handlers
+        window.deleteFrame = deleteFrame;
+        window.updateDuration = updateDuration;
     </script>
 </body>
 </html>
