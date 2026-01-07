@@ -1,31 +1,22 @@
-#!/usr/bin/env node
-
-const fs = require('fs');
-const path = require('path');
-
-// Template for individual dial HTML files
-function generateDialHTML(angle) {
-    const angleStr = angle < 0 ? `minus${Math.abs(angle)}` : angle.toString();
-
-    return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rotatable Dial - ${angle}°</title>
+    <title>Rotatable Dial - 32°</title>
 
     <!-- Open Graph meta tags for link previews -->
-    <meta property="og:title" content="Rotatable Dial - ${angle}°">
-    <meta property="og:description" content="Interactive rotatable dial set to ${angle} degrees">
-    <meta property="og:image" content="https://tools.samadams.dev/dial/previews/dial-${angleStr}.png">
-    <meta property="og:url" content="https://tools.samadams.dev/dial/dials/dial-${angleStr}.html">
+    <meta property="og:title" content="Rotatable Dial - 32°">
+    <meta property="og:description" content="Interactive rotatable dial set to 32 degrees">
+    <meta property="og:image" content="https://tools.samadams.dev/dial/previews/dial-32.png">
+    <meta property="og:url" content="https://tools.samadams.dev/dial/dials/dial-32.html">
     <meta property="og:type" content="website">
 
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Rotatable Dial - ${angle}°">
-    <meta name="twitter:description" content="Interactive rotatable dial set to ${angle} degrees">
-    <meta name="twitter:image" content="https://tools.samadams.dev/dial/previews/dial-${angleStr}.png">
+    <meta name="twitter:title" content="Rotatable Dial - 32°">
+    <meta name="twitter:description" content="Interactive rotatable dial set to 32 degrees">
+    <meta name="twitter:image" content="https://tools.samadams.dev/dial/previews/dial-32.png">
 
     <style>
         body {
@@ -105,12 +96,12 @@ function generateDialHTML(angle) {
         const centerX = 200;
         const centerY = 200;
         let isDragging = false;
-        let currentAngle = ${angle}; // Initialize to this file's angle
+        let currentAngle = 32; // Initialize to this file's angle
 
         // Get the filename for a given angle
         function getFilenameForAngle(angle) {
-            const angleStr = angle < 0 ? \`minus\${Math.abs(angle)}\` : angle.toString();
-            return \`dial-\${angleStr}.html\`;
+            const angleStr = angle < 0 ? `minus${Math.abs(angle)}` : angle.toString();
+            return `dial-${angleStr}.html`;
         }
 
         // Update dial arm position
@@ -158,7 +149,7 @@ function generateDialHTML(angle) {
 
         // Navigate to the appropriate dial file for the current angle
         function navigateToAngle(angle) {
-            if (angle === ${angle}) return; // Already on this page
+            if (angle === 32) return; // Already on this page
             const filename = getFilenameForAngle(angle);
             window.location.href = filename;
         }
@@ -170,7 +161,7 @@ function generateDialHTML(angle) {
         }
 
         function stopDragging() {
-            if (isDragging && currentAngle !== ${angle}) {
+            if (isDragging && currentAngle !== 32) {
                 navigateToAngle(currentAngle);
             }
             isDragging = false;
@@ -208,7 +199,7 @@ function generateDialHTML(angle) {
 
         function handleTouchEnd(e) {
             e.preventDefault();
-            if (isDragging && currentAngle !== ${angle}) {
+            if (isDragging && currentAngle !== 32) {
                 navigateToAngle(currentAngle);
             }
             isDragging = false;
@@ -224,7 +215,7 @@ function generateDialHTML(angle) {
         document.addEventListener('touchend', handleTouchEnd);
 
         // Initialize dial position
-        updateDialArm(${angle});
+        updateDialArm(32);
 
         // Share button functionality
         const shareButton = document.getElementById('share-button');
@@ -268,27 +259,4 @@ function generateDialHTML(angle) {
         shareButton.addEventListener('touchend', handleShare);
     </script>
 </body>
-</html>`;
-}
-
-// Generate all dial files
-console.log('Generating dial files...');
-
-let count = 0;
-for (let angle = -90; angle <= 90; angle++) {
-    const angleStr = angle < 0 ? `minus${Math.abs(angle)}` : angle.toString();
-    const filename = `dial-${angleStr}.html`;
-    const filepath = path.join(__dirname, 'dials', filename);
-    const html = generateDialHTML(angle);
-    fs.writeFileSync(filepath, html);
-    count++;
-    if (count % 20 === 0) {
-        console.log(`Generated ${count}/181 files...`);
-    }
-}
-
-console.log(`\nSuccessfully generated ${count} dial HTML files`);
-console.log('\nNext steps:');
-console.log('1. Generate preview images for each angle and place them in previews/');
-console.log('   - Images should be named: dial-0.png, dial-45.png, dial-minus30.png, etc.');
-console.log('2. Run: npm run generate-previews');
+</html>
