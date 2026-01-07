@@ -206,12 +206,22 @@
 
             // Otherwise, geocode the location name
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+                {
+                    headers: {
+                        'User-Agent': 'FlightAnimationApp/1.0'
+                    }
+                }
             );
+
+            if (!response.ok) {
+                throw new Error(`Geocoding failed: ${response.statusText}`);
+            }
+
             const data = await response.json();
 
-            if (data.length === 0) {
-                throw new Error(`Could not find location: ${query}`);
+            if (!data || data.length === 0 || !data[0] || !data[0].lat || !data[0].lon) {
+                throw new Error(`Could not find location: "${query}". Try being more specific (e.g., "San Francisco, USA" instead of "SF")`);
             }
 
             return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
@@ -219,19 +229,66 @@
 
         // Calculate great circle route
         function calculateRoute(from, to, numPoints = 100) {
-            const start = turf.point([from[1], from[0]]); // [lon, lat]
-            const end = turf.point([to[1], to[0]]);
+            console.log('Calculating route from', from, 'to', to);
 
-            const line = turf.greatCircle(start, end, { npoints: numPoints });
+            try {
+                const start = turf.point([from[1], from[0]]); // [lon, lat]
+                const end = turf.point([to[1], to[0]]);
 
-            return line.geometry.coordinates.map(coord => [coord[1], coord[0]]); // Convert back to [lat, lon]
+                console.log('Turf points created:', start, end);
+
+                const line = turf.greatCircle(start, end, { npoints: numPoints });
+
+                console.log('Great circle result:', line);
+
+                if (!line || !line.geometry || !line.geometry.coordinates) {
+                    throw new Error('Failed to calculate flight path');
+                }
+
+                // Handle both LineString and MultiLineString
+                let coordinates = line.geometry.coordinates;
+
+                // If it's a MultiLineString, we need to concatenate the segments
+                if (line.geometry.type === 'MultiLineString') {
+                    // MultiLineString has structure: [ [[lon,lat], [lon,lat], ...], [[lon,lat], [lon,lat], ...] ]
+                    // We need to flatten one level to get all coordinate pairs
+                    coordinates = coordinates.reduce((acc, segment) => acc.concat(segment), []);
+                }
+
+                const route = coordinates.map(coord => [coord[1], coord[0]]); // Convert back to [lat, lon]
+                console.log('Route first point:', route[0], 'last point:', route[route.length - 1]);
+                return route;
+            } catch (error) {
+                console.error('Route calculation error, using fallback:', error);
+                // Fallback to simple linear interpolation
+                const points = [];
+                for (let i = 0; i <= numPoints; i++) {
+                    const fraction = i / numPoints;
+                    const lat = from[0] + (to[0] - from[0]) * fraction;
+                    const lon = from[1] + (to[1] - from[1]) * fraction;
+                    points.push([lat, lon]);
+                }
+                console.log('Fallback route first point:', points[0], 'last point:', points[points.length - 1]);
+                return points;
+            }
         }
 
         // Calculate bearing between two points
         function calculateBearing(from, to) {
-            const fromPoint = turf.point([from[1], from[0]]);
-            const toPoint = turf.point([to[1], to[0]]);
-            return turf.bearing(fromPoint, toPoint);
+            try {
+                const fromPoint = turf.point([from[1], from[0]]);
+                const toPoint = turf.point([to[1], to[0]]);
+                const bearing = turf.bearing(fromPoint, toPoint);
+                return bearing || 0;
+            } catch (error) {
+                console.error('Bearing calculation error:', error);
+                // Fallback to simple bearing calculation
+                const dLon = to[1] - from[1];
+                const y = Math.sin(dLon * Math.PI / 180) * Math.cos(to[0] * Math.PI / 180);
+                const x = Math.cos(from[0] * Math.PI / 180) * Math.sin(to[0] * Math.PI / 180) -
+                          Math.sin(from[0] * Math.PI / 180) * Math.cos(to[0] * Math.PI / 180) * Math.cos(dLon * Math.PI / 180);
+                return Math.atan2(y, x) * 180 / Math.PI;
+            }
         }
 
         // Animate airplane along route
@@ -280,6 +337,20 @@
             animate();
         }
 
+        // Validate coordinates
+        function isValidCoordinate(coord) {
+            return coord &&
+                   Array.isArray(coord) &&
+                   coord.length === 2 &&
+                   typeof coord[0] === 'number' &&
+                   typeof coord[1] === 'number' &&
+                   !isNaN(coord[0]) &&
+                   !isNaN(coord[1]) &&
+                   coord[0] >= -90 &&
+                   coord[0] <= 90;
+                   // Allow longitude outside -180 to 180 for wrapping
+        }
+
         // Start animation
         async function startAnimation() {
             try {
@@ -292,19 +363,68 @@
                 const fromCoords = await geocode(fromQuery);
                 const toCoords = await geocode(toQuery);
 
+                // Validate coordinates
+                if (!isValidCoordinate(fromCoords)) {
+                    throw new Error(`Invalid coordinates for "${fromQuery}"`);
+                }
+                if (!isValidCoordinate(toCoords)) {
+                    throw new Error(`Invalid coordinates for "${toQuery}"`);
+                }
+
+                console.log('From coordinates:', fromCoords);
+                console.log('To coordinates:', toCoords);
+
                 updateStatus('Calculating route...');
 
                 // Calculate route
                 const route = calculateRoute(fromCoords, toCoords);
 
+                // Validate route
+                if (!route || route.length === 0) {
+                    throw new Error('Failed to calculate route');
+                }
+
+                // Validate all route points
+                const validRoute = route.filter(isValidCoordinate);
+                if (validRoute.length === 0) {
+                    throw new Error('Route contains no valid coordinates');
+                }
+
+                console.log('Route calculated:', validRoute.length, 'points');
+
+                // Adjust route coordinates to avoid wrapping issues
+                // If the longitude difference is > 180, adjust coordinates to go the short way
+                const lonDiff = toCoords[1] - fromCoords[1];
+                let adjustedToCoords = [...toCoords];
+
+                if (lonDiff > 180) {
+                    // Destination is too far east, shift it west by 360
+                    adjustedToCoords[1] -= 360;
+                } else if (lonDiff < -180) {
+                    // Destination is too far west, shift it east by 360
+                    adjustedToCoords[1] += 360;
+                }
+
+                // Recalculate route with adjusted coordinates
+                const adjustedRoute = calculateRoute(fromCoords, adjustedToCoords);
+                const validAdjustedRoute = adjustedRoute.filter(isValidCoordinate);
+
+                console.log('Adjusted route calculated:', validAdjustedRoute.length, 'points');
+
                 // Clear previous markers and paths
-                if (flightPath) map.removeLayer(flightPath);
+                if (flightPath) {
+                    if (Array.isArray(flightPath)) {
+                        flightPath.forEach(path => map.removeLayer(path));
+                    } else {
+                        map.removeLayer(flightPath);
+                    }
+                }
                 if (airplaneMarker) map.removeLayer(airplaneMarker);
                 if (startMarker) map.removeLayer(startMarker);
                 if (endMarker) map.removeLayer(endMarker);
 
-                // Draw flight path
-                flightPath = L.polyline(route, {
+                // Draw flight path using the adjusted route
+                flightPath = L.polyline(validAdjustedRoute, {
                     color: '#2563eb',
                     weight: 2,
                     opacity: 0.6,
@@ -334,7 +454,7 @@
                 map.fitBounds(flightPath.getBounds(), { padding: [50, 50] });
 
                 // Create airplane marker
-                airplaneMarker = L.marker(route[0], { icon: airplaneIcon }).addTo(map);
+                airplaneMarker = L.marker(validAdjustedRoute[0], { icon: airplaneIcon }).addTo(map);
 
                 updateStatus('Animating...');
 
@@ -347,7 +467,7 @@
                 document.getElementById('map').classList.add('animating');
 
                 // Start animation after controls are fully hidden (wait for CSS transition)
-                setTimeout(() => animateFlight(route, duration), 400);
+                setTimeout(() => animateFlight(validAdjustedRoute, duration), 400);
 
             } catch (error) {
                 updateStatus(`Error: ${error.message}`);
@@ -380,12 +500,54 @@
             statusEl.style.display = 'block';
         }
 
+        // Load saved values from localStorage
+        function loadSavedValues() {
+            const savedFrom = localStorage.getItem('flightFrom');
+            const savedTo = localStorage.getItem('flightTo');
+            const savedDuration = localStorage.getItem('flightDuration');
+
+            if (savedFrom) document.getElementById('fromInput').value = savedFrom;
+            if (savedTo) document.getElementById('toInput').value = savedTo;
+            if (savedDuration) document.getElementById('durationInput').value = savedDuration;
+        }
+
+        // Save values to localStorage
+        function saveValues() {
+            localStorage.setItem('flightFrom', document.getElementById('fromInput').value);
+            localStorage.setItem('flightTo', document.getElementById('toInput').value);
+            localStorage.setItem('flightDuration', document.getElementById('durationInput').value);
+        }
+
+        // Load saved values on page load
+        loadSavedValues();
+
         // Event listeners
         document.getElementById('startBtn').addEventListener('click', startAnimation);
         document.getElementById('stopBtn').addEventListener('click', stopAnimation);
 
-        // Auto-run animation on load
-        setTimeout(() => startAnimation(), 500);
+        // Save values when inputs change
+        document.getElementById('fromInput').addEventListener('input', saveValues);
+        document.getElementById('toInput').addEventListener('input', saveValues);
+        document.getElementById('durationInput').addEventListener('input', saveValues);
+
+        // Add Enter key support for input fields
+        document.getElementById('fromInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startAnimation();
+            }
+        });
+
+        document.getElementById('toInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startAnimation();
+            }
+        });
+
+        document.getElementById('durationInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startAnimation();
+            }
+        });
     </script>
 </body>
 </html>
