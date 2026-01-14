@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Use AI models to compare two options and visualize preference results">
+    <title>AI A/B Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .option-box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .option-label {
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-label.option-a {
+            color: #2563eb;
+        }
+
+        .option-label.option-b {
+            color: #ea580c;
+        }
+
+        .option-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .option-a .option-badge {
+            background: #2563eb;
+        }
+
+        .option-b .option-badge {
+            background: #ea580c;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .drop-zone {
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+
+        .drop-zone:hover {
+            border-color: #999;
+            background: #fafafa;
+        }
+
+        .drop-zone.dragover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .drop-zone-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .drop-zone-hint {
+            color: #999;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .file-list {
+            margin-top: 12px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .file-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-item-size {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .file-item-remove {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 16px;
+        }
+
+        .file-item-remove:hover {
+            color: #dc2626;
+        }
+
+        .file-preview {
+            max-width: 60px;
+            max-height: 40px;
+            border-radius: 4px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .question-textarea {
+            min-height: 80px;
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .model-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .model-checkbox:hover {
+            background: #fafafa;
+        }
+
+        .model-checkbox.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .model-checkbox input {
+            display: none;
+        }
+
+        .model-checkbox-box {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .model-checkbox.selected .model-checkbox-box {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .model-checkbox-box::after {
+            content: '';
+            width: 10px;
+            height: 6px;
+            border: 2px solid white;
+            border-top: none;
+            border-right: none;
+            transform: rotate(-45deg);
+            margin-top: -2px;
+            opacity: 0;
+        }
+
+        .model-checkbox.selected .model-checkbox-box::after {
+            opacity: 1;
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .model-provider {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-group label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .setting-group input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .cost-estimate {
+            padding: 12px 16px;
+            background: #fef3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d1d5db;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .progress-section {
+            margin-top: 16px;
+        }
+
+        .progress-bar-container {
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #2563eb;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .actual-cost {
+            padding: 12px 16px;
+            background: #dcfce7;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #166534;
+            margin-top: 16px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-box {
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-box.stat-a {
+            background: #eff6ff;
+        }
+
+        .stat-box.stat-b {
+            background: #fff7ed;
+        }
+
+        .stat-box.stat-refused {
+            background: #f3f4f6;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .stat-a .stat-value {
+            color: #2563eb;
+        }
+
+        .stat-b .stat-value {
+            color: #ea580c;
+        }
+
+        .stat-refused .stat-value {
+            color: #6b7280;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .error-message {
+            padding: 12px 16px;
+            background: #fee2e2;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #dc2626;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 450px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .modal-text a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .modal-text a:hover {
+            text-decoration: underline;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: monospace;
+            margin-bottom: 16px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .api-keys-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .api-key-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .api-key-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .api-key-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .api-key-status.stored {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .api-key-status.missing {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .key-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI A/B Test</h1>
+        <p class="subtitle">Compare two options using multiple AI models</p>
+
+        <!-- Options Card -->
+        <div class="card">
+            <div class="card-title">Options to Compare</div>
+            <div class="options-grid">
+                <div class="option-box">
+                    <div class="option-label option-a">
+                        <span class="option-badge">A</span>
+                        Option A
+                    </div>
+                    <textarea id="optionA" placeholder="Enter text for Option A..."></textarea>
+                    <div class="drop-zone" id="dropZoneA">
+                        <div class="drop-zone-text">Drop files here or click to browse</div>
+                        <div class="drop-zone-hint">Images, PDFs, text files</div>
+                        <input type="file" id="fileInputA" multiple accept="image/*,.pdf,.txt,.md,.json,.csv">
+                    </div>
+                    <div class="file-list" id="fileListA"></div>
+                </div>
+                <div class="option-box">
+                    <div class="option-label option-b">
+                        <span class="option-badge">B</span>
+                        Option B
+                    </div>
+                    <textarea id="optionB" placeholder="Enter text for Option B..."></textarea>
+                    <div class="drop-zone" id="dropZoneB">
+                        <div class="drop-zone-text">Drop files here or click to browse</div>
+                        <div class="drop-zone-hint">Images, PDFs, text files</div>
+                        <input type="file" id="fileInputB" multiple accept="image/*,.pdf,.txt,.md,.json,.csv">
+                    </div>
+                    <div class="file-list" id="fileListB"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="card">
+            <div class="card-title">Evaluation Question</div>
+            <textarea id="question" class="question-textarea" placeholder="Enter your question or evaluation criteria...&#10;&#10;Example: Which resume is better suited for a senior software engineer position?"></textarea>
+        </div>
+
+        <!-- Models Card -->
+        <div class="card">
+            <div class="card-title">Select Models</div>
+            <div class="models-grid">
+                <label class="model-checkbox" data-model="claude-sonnet-4-20250514" data-provider="anthropic">
+                    <input type="checkbox" checked>
+                    <span class="model-checkbox-box"></span>
+                    <span class="model-info">
+                        <span class="model-name">Claude Sonnet 4</span>
+                        <span class="model-provider">Anthropic</span>
+                    </span>
+                </label>
+                <label class="model-checkbox" data-model="claude-opus-4-20250514" data-provider="anthropic">
+                    <input type="checkbox">
+                    <span class="model-checkbox-box"></span>
+                    <span class="model-info">
+                        <span class="model-name">Claude Opus 4</span>
+                        <span class="model-provider">Anthropic</span>
+                    </span>
+                </label>
+                <label class="model-checkbox" data-model="gpt-4o" data-provider="openai">
+                    <input type="checkbox" checked>
+                    <span class="model-checkbox-box"></span>
+                    <span class="model-info">
+                        <span class="model-name">GPT-4o</span>
+                        <span class="model-provider">OpenAI</span>
+                    </span>
+                </label>
+                <label class="model-checkbox" data-model="gpt-4o-mini" data-provider="openai">
+                    <input type="checkbox">
+                    <span class="model-checkbox-box"></span>
+                    <span class="model-info">
+                        <span class="model-name">GPT-4o Mini</span>
+                        <span class="model-provider">OpenAI</span>
+                    </span>
+                </label>
+                <label class="model-checkbox" data-model="gemini-2.5-pro" data-provider="google">
+                    <input type="checkbox" checked>
+                    <span class="model-checkbox-box"></span>
+                    <span class="model-info">
+                        <span class="model-name">Gemini 2.5 Pro</span>
+                        <span class="model-provider">Google</span>
+                    </span>
+                </label>
+                <label class="model-checkbox" data-model="gemini-2.0-flash" data-provider="google">
+                    <input type="checkbox">
+                    <span class="model-checkbox-box"></span>
+                    <span class="model-info">
+                        <span class="model-name">Gemini 2.0 Flash</span>
+                        <span class="model-provider">Google</span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="api-keys-section">
+                <div class="card-title" style="margin-bottom: 8px;">API Keys</div>
+                <div class="api-key-row">
+                    <span class="api-key-name">OpenAI</span>
+                    <span class="api-key-status" id="keyStatusOpenai">Checking...</span>
+                    <div class="key-actions">
+                        <button class="btn btn-secondary btn-small" onclick="promptApiKey('openai')">Set</button>
+                        <button class="btn btn-secondary btn-small" onclick="clearApiKey('openai')">Clear</button>
+                    </div>
+                </div>
+                <div class="api-key-row">
+                    <span class="api-key-name">Anthropic</span>
+                    <span class="api-key-status" id="keyStatusAnthropic">Checking...</span>
+                    <div class="key-actions">
+                        <button class="btn btn-secondary btn-small" onclick="promptApiKey('anthropic')">Set</button>
+                        <button class="btn btn-secondary btn-small" onclick="clearApiKey('anthropic')">Clear</button>
+                    </div>
+                </div>
+                <div class="api-key-row">
+                    <span class="api-key-name">Google</span>
+                    <span class="api-key-status" id="keyStatusGoogle">Checking...</span>
+                    <div class="key-actions">
+                        <button class="btn btn-secondary btn-small" onclick="promptApiKey('google')">Set</button>
+                        <button class="btn btn-secondary btn-small" onclick="clearApiKey('google')">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings & Run Card -->
+        <div class="card">
+            <div class="settings-row">
+                <div class="setting-group">
+                    <label for="queryCount">Queries per model</label>
+                    <input type="number" id="queryCount" value="10" min="2" max="100" step="2">
+                </div>
+                <div class="cost-estimate" id="costEstimate">
+                    Estimated cost: $0.00
+                </div>
+            </div>
+            <div class="action-row" style="margin-top: 16px;">
+                <button class="btn btn-primary" id="runBtn" onclick="runExperiment()">Run Experiment</button>
+                <button class="btn btn-secondary" id="cancelBtn" onclick="cancelExperiment()" style="display: none;">Cancel</button>
+            </div>
+            <div class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">Starting...</div>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card results-section" id="resultsSection">
+            <div class="card-title">Results</div>
+            <div class="summary-stats">
+                <div class="stat-box stat-a">
+                    <div class="stat-value" id="totalA">0</div>
+                    <div class="stat-label">Option A</div>
+                </div>
+                <div class="stat-box stat-b">
+                    <div class="stat-value" id="totalB">0</div>
+                    <div class="stat-label">Option B</div>
+                </div>
+                <div class="stat-box stat-refused">
+                    <div class="stat-value" id="totalRefused">0</div>
+                    <div class="stat-label">Refused</div>
+                </div>
+            </div>
+            <div class="charts-grid" style="margin-top: 20px;">
+                <div>
+                    <div class="card-title">Results by Model</div>
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <div class="card-title">Overall Distribution</div>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="actual-cost" id="actualCost">
+                Actual cost: $0.00
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div class="modal-overlay" id="apiKeyModal">
+        <div class="modal">
+            <div class="modal-title" id="modalTitle">Enter API Key</div>
+            <div class="modal-text" id="modalText">Please enter your API key.</div>
+            <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-...">
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeApiKeyModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        const filesA = [];
+        const filesB = [];
+        let barChart = null;
+        let pieChart = null;
+        let abortController = null;
+        let currentModalProvider = null;
+
+        // Model pricing (per 1M tokens)
+        const MODEL_PRICING = {
+            'claude-sonnet-4-20250514': { input: 3, output: 15, provider: 'anthropic' },
+            'claude-opus-4-20250514': { input: 15, output: 75, provider: 'anthropic' },
+            'gpt-4o': { input: 2.5, output: 10, provider: 'openai' },
+            'gpt-4o-mini': { input: 0.15, output: 0.6, provider: 'openai' },
+            'gemini-2.5-pro': { input: 1.25, output: 10, provider: 'google' },
+            'gemini-2.0-flash': { input: 0.10, output: 0.40, provider: 'google' }
+        };
+
+        const SYSTEM_PROMPT = `You are evaluating two options. You MUST respond with ONLY a single character: either "A" or "B".
+Do not include any explanation, punctuation, or additional text.
+Your entire response must be exactly one character: A or B.`;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone('A');
+            setupDropZone('B');
+            setupModelCheckboxes();
+            updateApiKeyStatuses();
+            updateCostEstimate();
+
+            document.getElementById('queryCount').addEventListener('input', updateCostEstimate);
+        });
+
+        // File handling
+        function setupDropZone(option) {
+            const dropZone = document.getElementById(`dropZone${option}`);
+            const fileInput = document.getElementById(`fileInput${option}`);
+            const files = option === 'A' ? filesA : filesB;
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files, option);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files, option);
+                fileInput.value = '';
+            });
+        }
+
+        async function handleFiles(fileList, option) {
+            const files = option === 'A' ? filesA : filesB;
+
+            for (const file of fileList) {
+                const base64 = await fileToBase64(file);
+                files.push({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    base64: base64
+                });
+            }
+
+            renderFileList(option);
+            updateCostEstimate();
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderFileList(option) {
+            const files = option === 'A' ? filesA : filesB;
+            const container = document.getElementById(`fileList${option}`);
+
+            container.innerHTML = files.map((file, index) => `
+                <div class="file-item">
+                    ${file.type.startsWith('image/') ?
+                        `<img src="data:${file.type};base64,${file.base64}" class="file-preview">` :
+                        `<span style="font-size: 20px;">📄</span>`}
+                    <span class="file-item-name">${file.name}</span>
+                    <span class="file-item-size">${formatFileSize(file.size)}</span>
+                    <button class="file-item-remove" onclick="removeFile('${option}', ${index})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(option, index) {
+            const files = option === 'A' ? filesA : filesB;
+            files.splice(index, 1);
+            renderFileList(option);
+            updateCostEstimate();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Model checkboxes
+        function setupModelCheckboxes() {
+            document.querySelectorAll('.model-checkbox').forEach(checkbox => {
+                const input = checkbox.querySelector('input');
+
+                if (input.checked) {
+                    checkbox.classList.add('selected');
+                }
+
+                checkbox.addEventListener('click', () => {
+                    input.checked = !input.checked;
+                    checkbox.classList.toggle('selected', input.checked);
+                    updateCostEstimate();
+                });
+            });
+        }
+
+        function getSelectedModels() {
+            const models = [];
+            document.querySelectorAll('.model-checkbox').forEach(checkbox => {
+                if (checkbox.querySelector('input').checked) {
+                    models.push({
+                        id: checkbox.dataset.model,
+                        provider: checkbox.dataset.provider
+                    });
+                }
+            });
+            return models;
+        }
+
+        // API Key management
+        function getApiKey(provider) {
+            return localStorage.getItem(`apiKey_${provider}`);
+        }
+
+        function setApiKey(provider, key) {
+            localStorage.setItem(`apiKey_${provider}`, key);
+            updateApiKeyStatuses();
+        }
+
+        function clearApiKey(provider) {
+            localStorage.removeItem(`apiKey_${provider}`);
+            updateApiKeyStatuses();
+        }
+
+        function updateApiKeyStatuses() {
+            ['openai', 'anthropic', 'google'].forEach(provider => {
+                const status = document.getElementById(`keyStatus${provider.charAt(0).toUpperCase() + provider.slice(1)}`);
+                const hasKey = !!getApiKey(provider);
+                status.textContent = hasKey ? 'Stored' : 'Missing';
+                status.className = `api-key-status ${hasKey ? 'stored' : 'missing'}`;
+            });
+        }
+
+        function promptApiKey(provider) {
+            currentModalProvider = provider;
+            const modal = document.getElementById('apiKeyModal');
+            const title = document.getElementById('modalTitle');
+            const text = document.getElementById('modalText');
+            const input = document.getElementById('apiKeyInput');
+
+            const providerInfo = {
+                openai: {
+                    name: 'OpenAI',
+                    url: 'https://platform.openai.com/api-keys',
+                    placeholder: 'sk-...'
+                },
+                anthropic: {
+                    name: 'Anthropic',
+                    url: 'https://console.anthropic.com/settings/keys',
+                    placeholder: 'sk-ant-...'
+                },
+                google: {
+                    name: 'Google',
+                    url: 'https://aistudio.google.com/app/apikey',
+                    placeholder: 'AI...'
+                }
+            };
+
+            const info = providerInfo[provider];
+            title.textContent = `Enter ${info.name} API Key`;
+            text.innerHTML = `Your API key will be stored locally in your browser and never sent to any server except ${info.name}'s API.<br><br><a href="${info.url}" target="_blank" rel="noopener">Get your ${info.name} API key here</a>`;
+            input.value = '';
+            input.placeholder = info.placeholder;
+
+            modal.classList.add('visible');
+            input.focus();
+        }
+
+        function closeApiKeyModal() {
+            document.getElementById('apiKeyModal').classList.remove('visible');
+            currentModalProvider = null;
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            if (input.value.trim() && currentModalProvider) {
+                setApiKey(currentModalProvider, input.value.trim());
+            }
+            closeApiKeyModal();
+        }
+
+        document.getElementById('apiKeyInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveApiKey();
+            if (e.key === 'Escape') closeApiKeyModal();
+        });
+
+        // Cost estimation
+        function estimateTokens(text, files) {
+            // Rough estimation: ~4 chars per token for text
+            let tokens = Math.ceil((text || '').length / 4);
+
+            // For files, estimate based on size (very rough)
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    // Images typically use ~1000-2000 tokens
+                    tokens += 1500;
+                } else {
+                    // Text files: ~4 chars per token
+                    tokens += Math.ceil(file.size / 4);
+                }
+            }
+
+            return tokens;
+        }
+
+        function updateCostEstimate() {
+            const models = getSelectedModels();
+            const queryCount = parseInt(document.getElementById('queryCount').value) || 10;
+
+            const optionAText = document.getElementById('optionA').value;
+            const optionBText = document.getElementById('optionB').value;
+            const question = document.getElementById('question').value;
+
+            const inputTokensPerQuery = estimateTokens(optionAText, filesA) +
+                                        estimateTokens(optionBText, filesB) +
+                                        estimateTokens(question, []) +
+                                        estimateTokens(SYSTEM_PROMPT, []);
+
+            const outputTokensPerQuery = 5; // Just "A" or "B"
+
+            let totalCost = 0;
+
+            for (const model of models) {
+                const pricing = MODEL_PRICING[model.id];
+                const queriesForModel = queryCount;
+
+                const inputCost = (inputTokensPerQuery * queriesForModel / 1000000) * pricing.input;
+                const outputCost = (outputTokensPerQuery * queriesForModel / 1000000) * pricing.output;
+
+                totalCost += inputCost + outputCost;
+            }
+
+            document.getElementById('costEstimate').textContent = `Estimated cost: $${totalCost.toFixed(4)}`;
+        }
+
+        // Add event listeners for text inputs to update cost estimate
+        document.getElementById('optionA').addEventListener('input', updateCostEstimate);
+        document.getElementById('optionB').addEventListener('input', updateCostEstimate);
+        document.getElementById('question').addEventListener('input', updateCostEstimate);
+
+        // API calls
+        async function callOpenAI(model, prompt, files, apiKey, signal) {
+            const content = [];
+
+            // Add text
+            content.push({ type: 'text', text: prompt });
+
+            // Add images
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    content.push({
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${file.type};base64,${file.base64}`
+                        }
+                    });
+                }
+            }
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: content }
+                    ],
+                    max_tokens: 10
+                }),
+                signal
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || `OpenAI API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return {
+                answer: data.choices[0].message.content.trim(),
+                inputTokens: data.usage?.prompt_tokens || 0,
+                outputTokens: data.usage?.completion_tokens || 0
+            };
+        }
+
+        async function callAnthropic(model, prompt, files, apiKey, signal) {
+            const content = [];
+
+            // Add images first
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    content.push({
+                        type: 'image',
+                        source: {
+                            type: 'base64',
+                            media_type: file.type,
+                            data: file.base64
+                        }
+                    });
+                }
+            }
+
+            // Add text
+            content.push({ type: 'text', text: prompt });
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    system: SYSTEM_PROMPT,
+                    messages: [
+                        { role: 'user', content: content }
+                    ],
+                    max_tokens: 10
+                }),
+                signal
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || `Anthropic API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return {
+                answer: data.content[0].text.trim(),
+                inputTokens: data.usage?.input_tokens || 0,
+                outputTokens: data.usage?.output_tokens || 0
+            };
+        }
+
+        async function callGoogle(model, prompt, files, apiKey, signal) {
+            const parts = [];
+
+            // Add images
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    parts.push({
+                        inlineData: {
+                            mimeType: file.type,
+                            data: file.base64
+                        }
+                    });
+                }
+            }
+
+            // Add text
+            parts.push({ text: prompt });
+
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        systemInstruction: {
+                            parts: [{ text: SYSTEM_PROMPT }]
+                        },
+                        contents: [
+                            { parts: parts }
+                        ],
+                        generationConfig: {
+                            maxOutputTokens: 10
+                        }
+                    }),
+                    signal
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || `Google API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            return {
+                answer: text.trim(),
+                inputTokens: data.usageMetadata?.promptTokenCount || 0,
+                outputTokens: data.usageMetadata?.candidatesTokenCount || 0
+            };
+        }
+
+        // Build prompt
+        function buildPrompt(optionAText, optionBText, optionAFiles, optionBFiles, question, aFirst) {
+            const first = aFirst ? 'A' : 'B';
+            const second = aFirst ? 'B' : 'A';
+            const firstText = aFirst ? optionAText : optionBText;
+            const secondText = aFirst ? optionBText : optionAText;
+
+            let prompt = `${question}\n\n`;
+            prompt += `=== OPTION ${first} ===\n${firstText || '(see attached files)'}\n\n`;
+            prompt += `=== OPTION ${second} ===\n${secondText || '(see attached files)'}\n\n`;
+            prompt += `Which option is better: ${first} or ${second}? Answer with just the letter.`;
+
+            return prompt;
+        }
+
+        function getFilesForPrompt(aFirst) {
+            if (aFirst) {
+                return [...filesA, ...filesB];
+            } else {
+                return [...filesB, ...filesA];
+            }
+        }
+
+        function parseAnswer(answer, aFirst) {
+            const normalized = answer.toUpperCase().trim();
+
+            // Try exact match first
+            let choice = null;
+            if (normalized === 'A' || normalized === 'B') {
+                choice = normalized;
+            }
+            // Check for "A" or "B" at start (e.g., "A." or "A\n...")
+            else if (/^[AB][^A-Z]/i.test(normalized) || /^[AB]$/i.test(normalized)) {
+                choice = normalized[0];
+            }
+            // Check for "Option A" or "Option B"
+            else if (/\bOPTION\s*A\b/i.test(normalized) && !/\bOPTION\s*B\b/i.test(normalized)) {
+                choice = 'A';
+            }
+            else if (/\bOPTION\s*B\b/i.test(normalized) && !/\bOPTION\s*A\b/i.test(normalized)) {
+                choice = 'B';
+            }
+            // Last resort: check if only A or only B appears
+            else if (/\bA\b/.test(normalized) && !/\bB\b/.test(normalized)) {
+                choice = 'A';
+            }
+            else if (/\bB\b/.test(normalized) && !/\bA\b/.test(normalized)) {
+                choice = 'B';
+            }
+
+            if (choice) {
+                // Map back to original A/B based on order
+                if (aFirst) {
+                    return choice;
+                } else {
+                    return choice === 'A' ? 'B' : 'A';
+                }
+            }
+
+            return 'REFUSED';
+        }
+
+        // Run experiment
+        async function runExperiment() {
+            const models = getSelectedModels();
+            const queryCount = parseInt(document.getElementById('queryCount').value) || 10;
+            const optionAText = document.getElementById('optionA').value;
+            const optionBText = document.getElementById('optionB').value;
+            const question = document.getElementById('question').value;
+
+            // Validation
+            if (!optionAText && filesA.length === 0) {
+                showError('Please provide content for Option A');
+                return;
+            }
+            if (!optionBText && filesB.length === 0) {
+                showError('Please provide content for Option B');
+                return;
+            }
+            if (!question) {
+                showError('Please enter an evaluation question');
+                return;
+            }
+            if (models.length === 0) {
+                showError('Please select at least one model');
+                return;
+            }
+
+            // Check API keys
+            const requiredProviders = [...new Set(models.map(m => m.provider))];
+            for (const provider of requiredProviders) {
+                if (!getApiKey(provider)) {
+                    promptApiKey(provider);
+                    return;
+                }
+            }
+
+            // Start experiment
+            hideError();
+            abortController = new AbortController();
+
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('resultsSection').classList.remove('visible');
+
+            const results = {};
+            let totalQueries = models.length * queryCount;
+            let completedQueries = 0;
+            let totalInputTokens = 0;
+            let totalOutputTokens = 0;
+            const tokensByModel = {};
+
+            try {
+                // Build all query tasks
+                const tasks = [];
+
+                for (const model of models) {
+                    results[model.id] = { A: 0, B: 0, REFUSED: 0 };
+                    tokensByModel[model.id] = { input: 0, output: 0 };
+
+                    for (let i = 0; i < queryCount; i++) {
+                        const aFirst = i < queryCount / 2;
+                        tasks.push({
+                            model: model,
+                            aFirst: aFirst,
+                            index: i
+                        });
+                    }
+                }
+
+                // Shuffle tasks for better distribution
+                for (let i = tasks.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [tasks[i], tasks[j]] = [tasks[j], tasks[i]];
+                }
+
+                // Run all tasks in parallel
+                const promises = tasks.map(async (task) => {
+                    const prompt = buildPrompt(optionAText, optionBText, filesA, filesB, question, task.aFirst);
+                    const files = getFilesForPrompt(task.aFirst);
+                    const apiKey = getApiKey(task.model.provider);
+
+                    let result;
+                    if (task.model.provider === 'openai') {
+                        result = await callOpenAI(task.model.id, prompt, files, apiKey, abortController.signal);
+                    } else if (task.model.provider === 'anthropic') {
+                        result = await callAnthropic(task.model.id, prompt, files, apiKey, abortController.signal);
+                    } else if (task.model.provider === 'google') {
+                        result = await callGoogle(task.model.id, prompt, files, apiKey, abortController.signal);
+                    }
+
+                    const answer = parseAnswer(result.answer, task.aFirst);
+                    results[task.model.id][answer]++;
+
+                    tokensByModel[task.model.id].input += result.inputTokens;
+                    tokensByModel[task.model.id].output += result.outputTokens;
+                    totalInputTokens += result.inputTokens;
+                    totalOutputTokens += result.outputTokens;
+
+                    completedQueries++;
+                    updateProgress(completedQueries, totalQueries);
+
+                    return { model: task.model.id, answer };
+                });
+
+                await Promise.all(promises);
+
+                // Calculate actual cost
+                let actualCost = 0;
+                for (const model of models) {
+                    const pricing = MODEL_PRICING[model.id];
+                    const tokens = tokensByModel[model.id];
+                    actualCost += (tokens.input / 1000000) * pricing.input;
+                    actualCost += (tokens.output / 1000000) * pricing.output;
+                }
+
+                // Show results
+                displayResults(results, actualCost);
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    showError('Experiment cancelled');
+                } else {
+                    showError(error.message);
+                }
+            } finally {
+                document.getElementById('runBtn').disabled = false;
+                document.getElementById('cancelBtn').style.display = 'none';
+                abortController = null;
+            }
+        }
+
+        function cancelExperiment() {
+            if (abortController) {
+                abortController.abort();
+            }
+        }
+
+        function updateProgress(completed, total) {
+            const percent = (completed / total) * 100;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `Completed ${completed} of ${total} queries`;
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('visible');
+        }
+
+        function displayResults(results, actualCost) {
+            // Calculate totals
+            let totalA = 0, totalB = 0, totalRefused = 0;
+            const modelNames = [];
+            const dataA = [];
+            const dataB = [];
+            const dataRefused = [];
+
+            for (const [modelId, counts] of Object.entries(results)) {
+                totalA += counts.A;
+                totalB += counts.B;
+                totalRefused += counts.REFUSED;
+
+                // Get display name
+                const checkbox = document.querySelector(`[data-model="${modelId}"]`);
+                const name = checkbox.querySelector('.model-name').textContent;
+                modelNames.push(name);
+                dataA.push(counts.A);
+                dataB.push(counts.B);
+                dataRefused.push(counts.REFUSED);
+            }
+
+            // Update summary
+            document.getElementById('totalA').textContent = totalA;
+            document.getElementById('totalB').textContent = totalB;
+            document.getElementById('totalRefused').textContent = totalRefused;
+            document.getElementById('actualCost').textContent = `Actual cost: $${actualCost.toFixed(4)}`;
+
+            // Bar chart
+            if (barChart) barChart.destroy();
+            barChart = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [
+                        {
+                            label: 'Option A',
+                            data: dataA,
+                            backgroundColor: '#2563eb'
+                        },
+                        {
+                            label: 'Option B',
+                            data: dataB,
+                            backgroundColor: '#ea580c'
+                        },
+                        {
+                            label: 'Refused',
+                            data: dataRefused,
+                            backgroundColor: '#9ca3af'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Pie chart
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(document.getElementById('pieChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Option A', 'Option B', 'Refused'],
+                    datasets: [{
+                        data: [totalA, totalB, totalRefused],
+                        backgroundColor: ['#2563eb', '#ea580c', '#9ca3af']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Show results section
+            document.getElementById('resultsSection').classList.add('visible');
+            document.getElementById('progressSection').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
