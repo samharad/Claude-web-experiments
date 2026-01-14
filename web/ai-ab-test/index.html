@@ -601,6 +601,131 @@
             padding: 4px 8px;
             font-size: 12px;
         }
+
+        /* Debug panel */
+        .debug-section {
+            margin-top: 20px;
+        }
+
+        .debug-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .debug-toggle:hover {
+            background: #e5e7eb;
+        }
+
+        .debug-toggle-arrow {
+            transition: transform 0.2s;
+        }
+
+        .debug-toggle.expanded .debug-toggle-arrow {
+            transform: rotate(90deg);
+        }
+
+        .debug-content {
+            display: none;
+            margin-top: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .debug-content.visible {
+            display: block;
+        }
+
+        .debug-entry {
+            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .debug-entry-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f9fafb;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .debug-entry-header:hover {
+            background: #f3f4f6;
+        }
+
+        .debug-entry-model {
+            font-weight: 600;
+        }
+
+        .debug-entry-result {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .debug-entry-result.result-a {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .debug-entry-result.result-b {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        .debug-entry-result.result-refused {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .debug-entry-body {
+            display: none;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            background: #fafafa;
+        }
+
+        .debug-entry.expanded .debug-entry-body {
+            display: block;
+        }
+
+        .debug-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .debug-pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-bottom: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .debug-raw-answer {
+            background: #fef3c7;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 <body>
@@ -788,6 +913,14 @@
             <div class="actual-cost" id="actualCost">
                 Actual cost: $0.00
             </div>
+
+            <div class="debug-section">
+                <div class="debug-toggle" onclick="toggleDebugPanel()">
+                    <span class="debug-toggle-arrow">▶</span>
+                    <span>Debug Log (<span id="debugCount">0</span> requests)</span>
+                </div>
+                <div class="debug-content" id="debugContent"></div>
+            </div>
         </div>
     </div>
 
@@ -812,6 +945,7 @@
         let pieChart = null;
         let abortController = null;
         let currentModalProvider = null;
+        let debugLog = [];
 
         // Model pricing (per 1M tokens)
         const MODEL_PRICING = {
@@ -1086,6 +1220,106 @@ Your entire response must be exactly one character: A or B.`;
         document.getElementById('optionB').addEventListener('input', updateCostEstimate);
         document.getElementById('question').addEventListener('input', updateCostEstimate);
 
+        // Debug logging
+        function toggleDebugPanel() {
+            const toggle = document.querySelector('.debug-toggle');
+            const content = document.getElementById('debugContent');
+            toggle.classList.toggle('expanded');
+            content.classList.toggle('visible');
+        }
+
+        function addDebugEntry(entry) {
+            debugLog.push(entry);
+            document.getElementById('debugCount').textContent = debugLog.length;
+        }
+
+        function renderDebugLog() {
+            const container = document.getElementById('debugContent');
+            container.innerHTML = debugLog.map((entry, index) => {
+                const resultClass = entry.parsedAnswer === 'A' ? 'result-a' :
+                                   entry.parsedAnswer === 'B' ? 'result-b' : 'result-refused';
+                return `
+                    <div class="debug-entry" id="debug-entry-${index}">
+                        <div class="debug-entry-header" onclick="document.getElementById('debug-entry-${index}').classList.toggle('expanded')">
+                            <span class="debug-toggle-arrow">▶</span>
+                            <span class="debug-entry-model">${entry.model}</span>
+                            <span class="debug-entry-result ${resultClass}">${entry.parsedAnswer}</span>
+                            <span style="color: #999; font-size: 11px;">${entry.order}</span>
+                        </div>
+                        <div class="debug-entry-body">
+                            <div class="debug-label">Raw Response:</div>
+                            <div class="debug-raw-answer">"${escapeHtml(entry.rawAnswer)}"</div>
+
+                            <div class="debug-label">Request Body:</div>
+                            <pre class="debug-pre">${escapeHtml(JSON.stringify(entry.requestBody, null, 2))}</pre>
+
+                            <div class="debug-label">Response Body:</div>
+                            <pre class="debug-pre">${escapeHtml(JSON.stringify(entry.responseBody, null, 2))}</pre>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            if (typeof str !== 'string') str = String(str);
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function clearDebugLog() {
+            debugLog = [];
+            document.getElementById('debugCount').textContent = '0';
+            document.getElementById('debugContent').innerHTML = '';
+        }
+
+        // Retry with exponential backoff for rate limits
+        async function withRetry(fn, maxRetries = 5) {
+            let lastError;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    return await fn();
+                } catch (error) {
+                    lastError = error;
+                    // Check if it's a rate limit error (429 or message contains rate limit)
+                    const isRateLimit = error.message?.includes('rate limit') ||
+                                       error.message?.includes('429') ||
+                                       error.message?.includes('too many requests');
+                    if (!isRateLimit || attempt === maxRetries - 1) {
+                        throw error;
+                    }
+                    // Exponential backoff: 2s, 4s, 8s, 16s, 32s
+                    const waitTime = Math.pow(2, attempt + 1) * 1000;
+                    const message = `Rate limited, retrying in ${waitTime/1000}s (attempt ${attempt + 1}/${maxRetries})`;
+                    console.log(message);
+                    document.getElementById('progressText').textContent = message;
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            }
+            throw lastError;
+        }
+
+        // Helper to truncate base64 for debug display
+        function truncateBase64(obj) {
+            if (typeof obj === 'string' && obj.length > 100 && /^[A-Za-z0-9+/=]+$/.test(obj)) {
+                return obj.substring(0, 50) + '...[truncated]...' + obj.substring(obj.length - 20);
+            }
+            if (Array.isArray(obj)) {
+                return obj.map(truncateBase64);
+            }
+            if (obj && typeof obj === 'object') {
+                const result = {};
+                for (const [key, value] of Object.entries(obj)) {
+                    result[key] = truncateBase64(value);
+                }
+                return result;
+            }
+            return obj;
+        }
+
         // API calls
         async function callOpenAI(model, prompt, files, apiKey, signal) {
             const content = [];
@@ -1093,7 +1327,7 @@ Your entire response must be exactly one character: A or B.`;
             // Add text
             content.push({ type: 'text', text: prompt });
 
-            // Add images
+            // Add files (images and PDFs)
             for (const file of files) {
                 if (file.type.startsWith('image/')) {
                     content.push({
@@ -1102,8 +1336,26 @@ Your entire response must be exactly one character: A or B.`;
                             url: `data:${file.type};base64,${file.base64}`
                         }
                     });
+                } else if (file.type === 'application/pdf') {
+                    // OpenAI supports PDFs via file content type
+                    content.push({
+                        type: 'file',
+                        file: {
+                            filename: file.name,
+                            file_data: `data:application/pdf;base64,${file.base64}`
+                        }
+                    });
                 }
             }
+
+            const requestBody = {
+                model: model,
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: content }
+                ],
+                max_tokens: 256
+            };
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -1111,14 +1363,7 @@ Your entire response must be exactly one character: A or B.`;
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${apiKey}`
                 },
-                body: JSON.stringify({
-                    model: model,
-                    messages: [
-                        { role: 'system', content: SYSTEM_PROMPT },
-                        { role: 'user', content: content }
-                    ],
-                    max_tokens: 10
-                }),
+                body: JSON.stringify(requestBody),
                 signal
             });
 
@@ -1131,14 +1376,16 @@ Your entire response must be exactly one character: A or B.`;
             return {
                 answer: data.choices[0].message.content.trim(),
                 inputTokens: data.usage?.prompt_tokens || 0,
-                outputTokens: data.usage?.completion_tokens || 0
+                outputTokens: data.usage?.completion_tokens || 0,
+                requestBody: truncateBase64(requestBody),
+                responseBody: data
             };
         }
 
         async function callAnthropic(model, prompt, files, apiKey, signal) {
             const content = [];
 
-            // Add images first
+            // Add files first
             for (const file of files) {
                 if (file.type.startsWith('image/')) {
                     content.push({
@@ -1149,11 +1396,29 @@ Your entire response must be exactly one character: A or B.`;
                             data: file.base64
                         }
                     });
+                } else if (file.type === 'application/pdf') {
+                    content.push({
+                        type: 'document',
+                        source: {
+                            type: 'base64',
+                            media_type: 'application/pdf',
+                            data: file.base64
+                        }
+                    });
                 }
             }
 
             // Add text
             content.push({ type: 'text', text: prompt });
+
+            const requestBody = {
+                model: model,
+                system: SYSTEM_PROMPT,
+                messages: [
+                    { role: 'user', content: content }
+                ],
+                max_tokens: 256
+            };
 
             const response = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
@@ -1163,14 +1428,7 @@ Your entire response must be exactly one character: A or B.`;
                     'anthropic-version': '2023-06-01',
                     'anthropic-dangerous-direct-browser-access': 'true'
                 },
-                body: JSON.stringify({
-                    model: model,
-                    system: SYSTEM_PROMPT,
-                    messages: [
-                        { role: 'user', content: content }
-                    ],
-                    max_tokens: 10
-                }),
+                body: JSON.stringify(requestBody),
                 signal
             });
 
@@ -1183,16 +1441,18 @@ Your entire response must be exactly one character: A or B.`;
             return {
                 answer: data.content[0].text.trim(),
                 inputTokens: data.usage?.input_tokens || 0,
-                outputTokens: data.usage?.output_tokens || 0
+                outputTokens: data.usage?.output_tokens || 0,
+                requestBody: truncateBase64(requestBody),
+                responseBody: data
             };
         }
 
         async function callGoogle(model, prompt, files, apiKey, signal) {
             const parts = [];
 
-            // Add images
+            // Add files (images and PDFs)
             for (const file of files) {
-                if (file.type.startsWith('image/')) {
+                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
                     parts.push({
                         inlineData: {
                             mimeType: file.type,
@@ -1205,6 +1465,20 @@ Your entire response must be exactly one character: A or B.`;
             // Add text
             parts.push({ text: prompt });
 
+            const requestBody = {
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_PROMPT }]
+                },
+                contents: [
+                    { parts: parts }
+                ],
+                generationConfig: {
+                    // Gemini 2.5 uses "thinking" tokens internally, so we need lots of headroom
+                    // At ~$10/1M output tokens, 100k tokens = ~$1
+                    maxOutputTokens: 100000
+                }
+            };
+
             const response = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
                 {
@@ -1212,17 +1486,7 @@ Your entire response must be exactly one character: A or B.`;
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        systemInstruction: {
-                            parts: [{ text: SYSTEM_PROMPT }]
-                        },
-                        contents: [
-                            { parts: parts }
-                        ],
-                        generationConfig: {
-                            maxOutputTokens: 10
-                        }
-                    }),
+                    body: JSON.stringify(requestBody),
                     signal
                 }
             );
@@ -1237,21 +1501,25 @@ Your entire response must be exactly one character: A or B.`;
             return {
                 answer: text.trim(),
                 inputTokens: data.usageMetadata?.promptTokenCount || 0,
-                outputTokens: data.usageMetadata?.candidatesTokenCount || 0
+                outputTokens: data.usageMetadata?.candidatesTokenCount || 0,
+                requestBody: truncateBase64(requestBody),
+                responseBody: data
             };
         }
 
         // Build prompt
+        // For position bias mitigation, we always present as "Option A" then "Option B",
+        // but swap which content goes under each label. parseAnswer then maps back.
         function buildPrompt(optionAText, optionBText, optionAFiles, optionBFiles, question, aFirst) {
-            const first = aFirst ? 'A' : 'B';
-            const second = aFirst ? 'B' : 'A';
-            const firstText = aFirst ? optionAText : optionBText;
-            const secondText = aFirst ? optionBText : optionAText;
+            // When aFirst=true: A label gets original A content, B label gets original B content
+            // When aFirst=false: A label gets original B content, B label gets original A content
+            const labelAContent = aFirst ? optionAText : optionBText;
+            const labelBContent = aFirst ? optionBText : optionAText;
 
             let prompt = `${question}\n\n`;
-            prompt += `=== OPTION ${first} ===\n${firstText || '(see attached files)'}\n\n`;
-            prompt += `=== OPTION ${second} ===\n${secondText || '(see attached files)'}\n\n`;
-            prompt += `Which option is better: ${first} or ${second}? Answer with just the letter.`;
+            prompt += `=== OPTION A ===\n${labelAContent || '(see attached files)'}\n\n`;
+            prompt += `=== OPTION B ===\n${labelBContent || '(see attached files)'}\n\n`;
+            prompt += `Which option is better: A or B? Answer with just the letter.`;
 
             return prompt;
         }
@@ -1378,23 +1646,38 @@ Your entire response must be exactly one character: A or B.`;
                     [tasks[i], tasks[j]] = [tasks[j], tasks[i]];
                 }
 
-                // Run all tasks in parallel
-                const promises = tasks.map(async (task) => {
+                // Clear debug log
+                clearDebugLog();
+
+                // Run tasks sequentially to avoid rate limits
+                for (const task of tasks) {
+                    if (abortController.signal.aborted) break;
+
                     const prompt = buildPrompt(optionAText, optionBText, filesA, filesB, question, task.aFirst);
                     const files = getFilesForPrompt(task.aFirst);
                     const apiKey = getApiKey(task.model.provider);
 
                     let result;
                     if (task.model.provider === 'openai') {
-                        result = await callOpenAI(task.model.id, prompt, files, apiKey, abortController.signal);
+                        result = await withRetry(() => callOpenAI(task.model.id, prompt, files, apiKey, abortController.signal));
                     } else if (task.model.provider === 'anthropic') {
-                        result = await callAnthropic(task.model.id, prompt, files, apiKey, abortController.signal);
+                        result = await withRetry(() => callAnthropic(task.model.id, prompt, files, apiKey, abortController.signal));
                     } else if (task.model.provider === 'google') {
-                        result = await callGoogle(task.model.id, prompt, files, apiKey, abortController.signal);
+                        result = await withRetry(() => callGoogle(task.model.id, prompt, files, apiKey, abortController.signal));
                     }
 
                     const answer = parseAnswer(result.answer, task.aFirst);
                     results[task.model.id][answer]++;
+
+                    // Log debug entry
+                    addDebugEntry({
+                        model: task.model.id,
+                        order: task.aFirst ? 'A first' : 'B first',
+                        rawAnswer: result.answer,
+                        parsedAnswer: answer,
+                        requestBody: result.requestBody,
+                        responseBody: result.responseBody
+                    });
 
                     tokensByModel[task.model.id].input += result.inputTokens;
                     tokensByModel[task.model.id].output += result.outputTokens;
@@ -1403,11 +1686,10 @@ Your entire response must be exactly one character: A or B.`;
 
                     completedQueries++;
                     updateProgress(completedQueries, totalQueries);
+                }
 
-                    return { model: task.model.id, answer };
-                });
-
-                await Promise.all(promises);
+                // Render debug log
+                renderDebugLog();
 
                 // Calculate actual cost
                 let actualCost = 0;
