@@ -352,6 +352,7 @@
                 spawnInterval = null;
             }
 
+            tintConfettiBlue();
             balloons.forEach(b => {
                 const rect = b.el.getBoundingClientRect();
                 createConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, true);
@@ -370,6 +371,14 @@
                 clearInterval(checkConfettiCleared);
                 showReveal();
             }, 8000);
+        }
+
+        function tintConfettiBlue() {
+            confettiPieces.forEach(piece => {
+                piece.color = BLUE_CONFETTI[Math.floor(Math.random() * BLUE_CONFETTI.length)];
+                piece.gravity = 0.025;
+                piece.drag = 0.995;
+            });
         }
 
         function showReveal() {
