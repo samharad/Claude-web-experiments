@@ -42,6 +42,9 @@
         body.revealed-instant::before {
             transition: none;
         }
+        body.instant-reset::before {
+            transition: none;
+        }
 
         #game-container {
             width: 100%;
@@ -117,9 +120,12 @@
             transform: translate(-50%, -50%);
             font-size: min(200px, 40vw);
             opacity: 0;
-            transition: opacity 2.5s ease-in;
+            transition: opacity 1.8s ease-in;
             z-index: 1000;
             pointer-events: none;
+        }
+        body.instant-reset .emoji-reveal {
+            transition: none;
         }
 
         .emoji-reveal.visible {
@@ -145,6 +151,9 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             pointer-events: none;
         }
+        body.instant-reset .play-again {
+            transition: none;
+        }
 
         .play-again.visible {
             opacity: 1;
@@ -158,12 +167,36 @@
         .play-again:active {
             transform: translateX(-50%) scale(0.95);
         }
+
+        .helena-photo {
+            position: fixed;
+            left: 50%;
+            top: 6%;
+            transform: translateX(-50%);
+            width: min(26vw, 180px);
+            height: auto;
+            opacity: 0;
+            transition: opacity 2s ease-in;
+            z-index: 900;
+            pointer-events: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+
+        .helena-photo.visible {
+            opacity: 1;
+        }
+
+        body.instant-reset .helena-photo {
+            transition: none;
+        }
     </style>
 </head>
 <body>
     <div id="game-container"></div>
     <canvas id="confetti-canvas"></canvas>
     <div class="emoji-reveal" id="emoji">👦</div>
+    <img class="helena-photo" id="helenaPhoto" src="IMG_7165.jpeg" alt="Sad Helena">
     <button class="play-again" id="playAgain">Play again</button>
 
     <script>
@@ -171,6 +204,7 @@
         const confettiCanvas = document.getElementById('confetti-canvas');
         const confettiCtx = confettiCanvas.getContext('2d');
         const emojiEl = document.getElementById('emoji');
+        const helenaPhotoEl = document.getElementById('helenaPhoto');
         const playAgainBtn = document.getElementById('playAgain');
 
         const BALLOON_COLORS = [
@@ -202,6 +236,17 @@
 
         function getRiseSpeedMultiplier() {
             return window.innerWidth < 600 ? 1.35 : 1;
+        }
+
+        function getBlueSpawnChance() {
+            return popCount >= 10 ? 0.55 : 0.14;
+        }
+
+        function pickBalloonColor() {
+            if (Math.random() < getBlueSpawnChance()) {
+                return BALLOON_COLORS.find(colorObj => colorObj.color === BLUE_BALLOON_COLOR);
+            }
+            return BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
         }
 
         function createBalloon(x, y, colorObj, isStationary = false, fadeIn = false) {
@@ -329,7 +374,7 @@
             const margin = 30;
             const x = margin + Math.random() * (window.innerWidth - balloonWidth - margin * 2);
             const y = window.innerHeight + 50;
-            const colorObj = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+            const colorObj = pickBalloonColor();
 
             const balloon = createBalloon(x, y, colorObj);
             balloons.push(balloon);
@@ -342,7 +387,7 @@
             const margin = 30;
             const x = margin + Math.random() * (window.innerWidth - balloonWidth - margin * 2);
             const y = window.innerHeight * (0.2 + Math.random() * 0.6);
-            const colorObj = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+            const colorObj = pickBalloonColor();
 
             const balloon = createBalloon(x, y, colorObj, false, true);
             balloons.push(balloon);
@@ -393,13 +438,19 @@
             if (emojiEl.classList.contains('visible')) return;
             emojiEl.classList.add('visible');
             setTimeout(() => {
+                helenaPhotoEl.classList.add('visible');
+            }, 3500);
+            setTimeout(() => {
                 playAgainBtn.classList.add('visible');
-            }, 2000);
+            }, 1500);
         }
 
         function resetGame() {
+            document.body.classList.add('instant-reset');
+
             // Hide UI elements
             emojiEl.classList.remove('visible');
+            helenaPhotoEl.classList.remove('visible');
             playAgainBtn.classList.remove('visible');
             document.body.classList.remove('revealed');
             document.body.classList.remove('revealed-instant');
@@ -423,6 +474,10 @@
 
             const introBalloon = createBalloon(centerX, centerY, colorObj, true);
             balloons.push(introBalloon);
+
+            requestAnimationFrame(() => {
+                document.body.classList.remove('instant-reset');
+            });
         }
 
         playAgainBtn.addEventListener('click', resetGame);
