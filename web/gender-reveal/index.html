@@ -240,6 +240,8 @@
         let confettiPieces = [];
         let spawnInterval = null;
         let revealTimer = null;
+        let helenaTimer = null;
+        let playAgainTimer = null;
 
         function getSpawnInterval() {
             return window.innerWidth < 600 ? 450 : 700;
@@ -448,16 +450,18 @@
 
         function showReveal() {
             if (emojiEl.classList.contains('visible')) return;
-            if (revealTimer) return;
+            if (revealTimer || state !== 'reveal') return;
             revealTimer = setTimeout(() => {
                 emojiEl.classList.add('visible');
                 revealTimer = null;
-            }, 1000);
-            setTimeout(() => {
+            }, 1500);
+            helenaTimer = setTimeout(() => {
                 helenaPhotoEl.classList.add('visible');
+                helenaTimer = null;
             }, 3500);
-            setTimeout(() => {
+            playAgainTimer = setTimeout(() => {
                 playAgainBtn.classList.add('visible');
+                playAgainTimer = null;
             }, 1500);
         }
 
@@ -466,6 +470,14 @@
             if (revealTimer) {
                 clearTimeout(revealTimer);
                 revealTimer = null;
+            }
+            if (helenaTimer) {
+                clearTimeout(helenaTimer);
+                helenaTimer = null;
+            }
+            if (playAgainTimer) {
+                clearTimeout(playAgainTimer);
+                playAgainTimer = null;
             }
 
             // Hide UI elements
