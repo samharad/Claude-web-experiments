@@ -22,6 +22,7 @@
             height: 100vh;
             height: 100svh;
             height: 100dvh;
+            height: calc(var(--vh, 1vh) * 100);
             min-height: 100%;
             background: linear-gradient(180deg, #a9d8f7 0%, #c6e6fb 45%, #efb8cf 100%);
             position: relative;
@@ -237,6 +238,7 @@
         let balloons = [];
         let confettiPieces = [];
         let spawnInterval = null;
+        let revealTimer = null;
 
         function getSpawnInterval() {
             return window.innerWidth < 600 ? 450 : 700;
@@ -420,6 +422,7 @@
                 b.el.remove();
             });
             balloons = [];
+            showReveal();
 
             const checkConfettiCleared = setInterval(() => {
                 if (confettiPieces.length === 0) {
@@ -444,7 +447,11 @@
 
         function showReveal() {
             if (emojiEl.classList.contains('visible')) return;
-            emojiEl.classList.add('visible');
+            if (revealTimer) return;
+            revealTimer = setTimeout(() => {
+                emojiEl.classList.add('visible');
+                revealTimer = null;
+            }, 1000);
             setTimeout(() => {
                 helenaPhotoEl.classList.add('visible');
             }, 3500);
@@ -455,6 +462,10 @@
 
         function resetGame() {
             document.body.classList.add('instant-reset');
+            if (revealTimer) {
+                clearTimeout(revealTimer);
+                revealTimer = null;
+            }
 
             // Hide UI elements
             emojiEl.classList.remove('visible');
@@ -546,6 +557,7 @@
         }
 
         function init() {
+            updateViewportHeight();
             resizeCanvas();
             const centerX = window.innerWidth / 2 - 35;
             const centerY = window.innerHeight / 2 - 44;
@@ -564,7 +576,14 @@
             confettiCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
         }
 
-        window.addEventListener('resize', resizeCanvas);
+        function updateViewportHeight() {
+            document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+        }
+
+        window.addEventListener('resize', () => {
+            updateViewportHeight();
+            resizeCanvas();
+        });
 
         // Initialize immediately - script is at end of body so DOM is ready
         init();
