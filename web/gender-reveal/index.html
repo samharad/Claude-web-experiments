@@ -17,21 +17,33 @@
             height: 100vh;
             height: 100dvh;
             background: linear-gradient(180deg, #a9d8f7 0%, #c6e6fb 45%, #efb8cf 100%);
+            position: relative;
             font-family: system-ui, -apple-system, sans-serif;
             touch-action: manipulation;
             user-select: none;
             -webkit-user-select: none;
-            transition: background 2.5s ease-in;
         }
 
-        body.revealed {
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
             background: linear-gradient(to bottom, #b8e0f7, #7ec8e8);
+            opacity: 0;
+            transition: opacity 2.5s ease-in;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.revealed::before {
+            opacity: 1;
         }
 
         #game-container {
             width: 100%;
             height: 100%;
             position: relative;
+            z-index: 1;
         }
 
         .balloon {
@@ -83,6 +95,15 @@
             position: absolute;
             pointer-events: none;
             will-change: transform;
+        }
+        canvas#confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
         }
 
         .emoji-reveal {
@@ -137,11 +158,14 @@
 </head>
 <body>
     <div id="game-container"></div>
+    <canvas id="confetti-canvas"></canvas>
     <div class="emoji-reveal" id="emoji">👦</div>
     <button class="play-again" id="playAgain">Play again</button>
 
     <script>
         const container = document.getElementById('game-container');
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
         const emojiEl = document.getElementById('emoji');
         const playAgainBtn = document.getElementById('playAgain');
 
@@ -224,31 +248,23 @@
             const speed = isBlue ? 6 : 5;
 
             for (let i = 0; i < count; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-                confetti.style.left = x + 'px';
-                confetti.style.top = y + 'px';
-                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-
                 const size = 6 + Math.random() * 10;
                 const isCircle = Math.random() > 0.5;
-                confetti.style.width = size + 'px';
-                confetti.style.height = (isCircle ? size : size * 0.6) + 'px';
-                confetti.style.borderRadius = isCircle ? '50%' : '2px';
-
-                container.appendChild(confetti);
+                const color = colors[Math.floor(Math.random() * colors.length)];
 
                 const angle = Math.random() * Math.PI * 2;
                 const velocity = (speed * 0.5) + Math.random() * speed;
 
                 confettiPieces.push({
-                    el: confetti,
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * velocity,
                     vy: Math.sin(angle) * velocity - 4,
                     rotation: Math.random() * 360,
                     rotationSpeed: (Math.random() - 0.5) * 15,
+                    size: size,
+                    isCircle: isCircle,
+                    color: color,
                     gravity: isBlue ? 0.025 : 0.06,
                     drag: isBlue ? 0.995 : 0.985
                 });
@@ -372,8 +388,8 @@
             document.body.classList.remove('revealed');
 
             // Clear any remaining confetti
-            confettiPieces.forEach(c => c.el.remove());
             confettiPieces = [];
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
 
             // Clear any remaining balloons
             balloons.forEach(b => b.el.remove());
@@ -416,6 +432,7 @@
                 return true;
             });
 
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
             confettiPieces.forEach(c => {
                 c.vy += c.gravity;
                 c.vx *= c.drag;
@@ -424,12 +441,22 @@
                 c.y += c.vy;
                 c.rotation += c.rotationSpeed;
 
-                c.el.style.transform = `translate(${c.x - parseFloat(c.el.style.left)}px, ${c.y - parseFloat(c.el.style.top)}px) rotate(${c.rotation}deg)`;
+                confettiCtx.save();
+                confettiCtx.translate(c.x, c.y);
+                confettiCtx.rotate((c.rotation * Math.PI) / 180);
+                confettiCtx.fillStyle = c.color;
+                if (c.isCircle) {
+                    confettiCtx.beginPath();
+                    confettiCtx.arc(0, 0, c.size / 2, 0, Math.PI * 2);
+                    confettiCtx.fill();
+                } else {
+                    confettiCtx.fillRect(-c.size / 2, -c.size * 0.3, c.size, c.size * 0.6);
+                }
+                confettiCtx.restore();
             });
 
             confettiPieces = confettiPieces.filter(c => {
                 if (c.y > window.innerHeight + 50) {
-                    c.el.remove();
                     return false;
                 }
                 return true;
@@ -439,6 +466,7 @@
         }
 
         function init() {
+            resizeCanvas();
             const centerX = window.innerWidth / 2 - 35;
             const centerY = window.innerHeight / 2 - 44;
             const colorObj = INTRO_COLORS[Math.floor(Math.random() * INTRO_COLORS.length)];
@@ -448,6 +476,15 @@
 
             animate();
         }
+
+        function resizeCanvas() {
+            const ratio = window.devicePixelRatio || 1;
+            confettiCanvas.width = Math.floor(window.innerWidth * ratio);
+            confettiCanvas.height = Math.floor(window.innerHeight * ratio);
+            confettiCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
 
         // Initialize immediately - script is at end of body so DOM is ready
         init();
