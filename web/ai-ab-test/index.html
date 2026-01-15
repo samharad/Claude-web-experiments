@@ -470,6 +470,12 @@
             margin-top: 4px;
         }
 
+        .stat-hint {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
         .error-message {
             padding: 12px 16px;
             background: #fee2e2;
@@ -726,12 +732,302 @@
             border-radius: 4px;
             margin-bottom: 12px;
         }
+
+        /* Clickable stat boxes */
+        .stat-box.clickable {
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .stat-box.clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Rationale modal */
+        .rationale-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .rationale-modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .rationale-modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .rationale-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .rationale-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .rationale-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .rationale-modal-close:hover {
+            color: #333;
+        }
+
+        .rationale-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .rationale-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .rationale-item-model {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .rationale-item-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .rationale-empty {
+            text-align: center;
+            color: #666;
+            padding: 32px;
+        }
+
+        /* Layout with side panel */
+        .app-layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .side-panel {
+            width: 280px;
+            flex-shrink: 0;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media (max-width: 900px) {
+            .app-layout {
+                flex-direction: column;
+            }
+            .side-panel {
+                width: 100%;
+            }
+        }
+
+        .history-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 16px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            padding: 20px 0;
+        }
+
+        .history-item {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            border-color: #2563eb;
+            background: #f8fafc;
+        }
+
+        .history-item.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .history-item-date {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .history-item-question {
+            font-size: 13px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 6px;
+        }
+
+        .history-item-results {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .history-item-result {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .history-item-result.result-a {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .history-item-result.result-b {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        .history-item-delete {
+            float: right;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            margin-top: -2px;
+        }
+
+        .history-item-delete:hover {
+            color: #dc2626;
+        }
+
+        .history-clear {
+            font-size: 11px;
+            color: #999;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .history-clear:hover {
+            color: #dc2626;
+        }
+
+        /* Collapsible sections */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            opacity: 0.8;
+        }
+
+        .collapsible-toggle {
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.2s;
+        }
+
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0 !important;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>AI A/B Test</h1>
         <p class="subtitle">Compare two options using multiple AI models</p>
+
+        <div class="app-layout">
+            <!-- History Side Panel -->
+            <div class="side-panel">
+                <div class="history-card">
+                    <div class="history-title">
+                        <span>Experiment History</span>
+                        <button class="history-clear" onclick="clearAllHistory()">Clear all</button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">No experiments yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
 
         <!-- Options Card -->
         <div class="card">
@@ -774,7 +1070,11 @@
 
         <!-- Models Card -->
         <div class="card">
-            <div class="card-title">Select Models</div>
+            <div class="card-title collapsible-header" onclick="toggleModelsSection()">
+                <span>Select Models & API Keys</span>
+                <span class="collapsible-toggle" id="modelsToggle">▼</span>
+            </div>
+            <div class="collapsible-content" id="modelsContent" style="max-height: 500px;">
             <div class="models-grid">
                 <label class="model-checkbox" data-model="claude-sonnet-4-20250514" data-provider="anthropic">
                     <input type="checkbox" checked>
@@ -853,6 +1153,7 @@
                     </div>
                 </div>
             </div>
+            </div><!-- /collapsible-content -->
         </div>
 
         <!-- Settings & Run Card -->
@@ -883,17 +1184,20 @@
         <div class="card results-section" id="resultsSection">
             <div class="card-title">Results</div>
             <div class="summary-stats">
-                <div class="stat-box stat-a">
+                <div class="stat-box stat-a clickable" onclick="showRationales('A')">
                     <div class="stat-value" id="totalA">0</div>
                     <div class="stat-label">Option A</div>
+                    <div class="stat-hint">Click to see rationales</div>
                 </div>
-                <div class="stat-box stat-b">
+                <div class="stat-box stat-b clickable" onclick="showRationales('B')">
                     <div class="stat-value" id="totalB">0</div>
                     <div class="stat-label">Option B</div>
+                    <div class="stat-hint">Click to see rationales</div>
                 </div>
-                <div class="stat-box stat-refused">
+                <div class="stat-box stat-refused clickable" onclick="showRationales('REFUSED')">
                     <div class="stat-value" id="totalRefused">0</div>
                     <div class="stat-label">Refused</div>
+                    <div class="stat-hint">Click to see responses</div>
                 </div>
             </div>
             <div class="charts-grid" style="margin-top: 20px;">
@@ -922,6 +1226,9 @@
                 <div class="debug-content" id="debugContent"></div>
             </div>
         </div>
+
+            </div><!-- /main-content -->
+        </div><!-- /app-layout -->
     </div>
 
     <!-- API Key Modal -->
@@ -937,15 +1244,27 @@
         </div>
     </div>
 
+    <!-- Rationale Modal -->
+    <div class="rationale-modal" id="rationaleModal" onclick="closeRationaleModal(event)">
+        <div class="rationale-modal-content" onclick="event.stopPropagation()">
+            <div class="rationale-modal-header">
+                <div class="rationale-modal-title" id="rationaleModalTitle">Rationales</div>
+                <button class="rationale-modal-close" onclick="closeRationaleModal()">&times;</button>
+            </div>
+            <div id="rationaleModalBody"></div>
+        </div>
+    </div>
+
     <script>
         // State
-        const filesA = [];
-        const filesB = [];
+        let filesA = [];
+        let filesB = [];
         let barChart = null;
         let pieChart = null;
         let abortController = null;
         let currentModalProvider = null;
         let debugLog = [];
+        let currentExperimentId = null;
 
         // Model pricing (per 1M tokens)
         const MODEL_PRICING = {
@@ -957,9 +1276,11 @@
             'gemini-2.0-flash': { input: 0.10, output: 0.40, provider: 'google' }
         };
 
-        const SYSTEM_PROMPT = `You are evaluating two options. You MUST respond with ONLY a single character: either "A" or "B".
-Do not include any explanation, punctuation, or additional text.
-Your entire response must be exactly one character: A or B.`;
+        const SYSTEM_PROMPT = `You are evaluating two options. First, briefly explain your reasoning (2-3 sentences max). Then on a new line, write your final answer as exactly "ANSWER: A" or "ANSWER: B".
+
+Example format:
+[Your brief reasoning here]
+ANSWER: A`;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -968,6 +1289,7 @@ Your entire response must be exactly one character: A or B.`;
             setupModelCheckboxes();
             updateApiKeyStatuses();
             updateCostEstimate();
+            renderExperimentHistory();
 
             document.getElementById('queryCount').addEventListener('input', updateCostEstimate);
         });
@@ -1276,6 +1598,264 @@ Your entire response must be exactly one character: A or B.`;
             document.getElementById('debugContent').innerHTML = '';
         }
 
+        // Rationale modal functions
+        function showRationales(choice) {
+            const modal = document.getElementById('rationaleModal');
+            const title = document.getElementById('rationaleModalTitle');
+            const body = document.getElementById('rationaleModalBody');
+
+            const titleText = choice === 'A' ? 'Option A' : choice === 'B' ? 'Option B' : 'Refused';
+            title.textContent = `Rationales for ${titleText}`;
+
+            // Filter debug log entries by the chosen answer
+            const entries = debugLog.filter(entry => entry.parsedAnswer === choice);
+
+            if (entries.length === 0) {
+                body.innerHTML = '<div class="rationale-empty">No responses for this choice</div>';
+            } else {
+                body.innerHTML = entries.map(entry => {
+                    // Get model display name
+                    const modelCheckbox = document.querySelector(`[data-model="${entry.model}"]`);
+                    const modelName = modelCheckbox ? modelCheckbox.querySelector('.model-name').textContent : entry.model;
+
+                    // Extract reasoning (everything before "ANSWER:")
+                    let reasoning = entry.rawAnswer || '';
+                    const answerIndex = reasoning.toUpperCase().indexOf('ANSWER:');
+                    if (answerIndex > 0) {
+                        reasoning = reasoning.substring(0, answerIndex).trim();
+                    }
+
+                    return `
+                        <div class="rationale-item">
+                            <div class="rationale-item-header">
+                                <span class="rationale-item-model">${escapeHtml(modelName)}</span>
+                                <span style="color: #999;">${entry.order}</span>
+                            </div>
+                            <div class="rationale-item-text">${escapeHtml(reasoning)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            modal.classList.add('visible');
+        }
+
+        function closeRationaleModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('rationaleModal').classList.remove('visible');
+        }
+
+        // Close rationale modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeRationaleModal();
+            }
+        });
+
+        // Toggle models section
+        function toggleModelsSection() {
+            const content = document.getElementById('modelsContent');
+            const toggle = document.getElementById('modelsToggle');
+            content.classList.toggle('collapsed');
+            toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+        }
+
+        // Experiment history functions
+        function getExperimentHistory() {
+            const history = localStorage.getItem('experimentHistory');
+            return history ? JSON.parse(history) : [];
+        }
+
+        function saveExperimentHistory(history) {
+            localStorage.setItem('experimentHistory', JSON.stringify(history));
+        }
+
+        function saveExperiment(experimentData) {
+            const history = getExperimentHistory();
+            // Remove old version if updating
+            const existingIndex = history.findIndex(e => e.id === experimentData.id);
+            if (existingIndex >= 0) {
+                history[existingIndex] = experimentData;
+            } else {
+                history.unshift(experimentData); // Add to beginning
+            }
+            // Keep only last 50 experiments
+            if (history.length > 50) {
+                history.pop();
+            }
+            saveExperimentHistory(history);
+            renderExperimentHistory();
+        }
+
+        function deleteExperiment(id, event) {
+            event.stopPropagation();
+            if (!confirm('Delete this experiment?')) return;
+            const history = getExperimentHistory().filter(e => e.id !== id);
+            saveExperimentHistory(history);
+            if (currentExperimentId === id) {
+                currentExperimentId = null;
+            }
+            renderExperimentHistory();
+        }
+
+        function clearAllHistory() {
+            if (!confirm('Delete all experiment history?')) return;
+            saveExperimentHistory([]);
+            currentExperimentId = null;
+            renderExperimentHistory();
+        }
+
+        function renderExperimentHistory() {
+            const history = getExperimentHistory();
+            const container = document.getElementById('historyList');
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="history-empty">No experiments yet</div>';
+                return;
+            }
+
+            container.innerHTML = history.map(exp => {
+                const date = new Date(exp.timestamp);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const isActive = exp.id === currentExperimentId;
+
+                return `
+                    <div class="history-item ${isActive ? 'active' : ''}" onclick="restoreExperiment('${exp.id}')">
+                        <button class="history-item-delete" onclick="deleteExperiment('${exp.id}', event)">&times;</button>
+                        <div class="history-item-date">${dateStr}</div>
+                        <div class="history-item-question">${escapeHtml(exp.question || 'No question')}</div>
+                        <div class="history-item-results">
+                            <span class="history-item-result result-a">A: ${exp.totals?.A || 0}</span>
+                            <span class="history-item-result result-b">B: ${exp.totals?.B || 0}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function restoreExperiment(id) {
+            const history = getExperimentHistory();
+            const exp = history.find(e => e.id === id);
+            if (!exp) return;
+
+            currentExperimentId = id;
+
+            // Restore inputs
+            document.getElementById('optionA').value = exp.optionAText || '';
+            document.getElementById('optionB').value = exp.optionBText || '';
+            document.getElementById('question').value = exp.question || '';
+            document.getElementById('queryCount').value = exp.queryCount || 10;
+
+            // Restore files (just metadata, not full base64 for display)
+            filesA = exp.filesA || [];
+            filesB = exp.filesB || [];
+            renderFileList('A');
+            renderFileList('B');
+
+            // Restore model selections
+            document.querySelectorAll('.model-checkbox').forEach(checkbox => {
+                const modelId = checkbox.dataset.model;
+                const input = checkbox.querySelector('input');
+                const isSelected = exp.selectedModels?.includes(modelId) || false;
+                input.checked = isSelected;
+                checkbox.classList.toggle('selected', isSelected);
+            });
+
+            // Restore debug log
+            debugLog = exp.debugLog || [];
+            document.getElementById('debugCount').textContent = debugLog.length;
+
+            // Restore results if they exist
+            if (exp.results && exp.totals) {
+                document.getElementById('totalA').textContent = exp.totals.A || 0;
+                document.getElementById('totalB').textContent = exp.totals.B || 0;
+                document.getElementById('totalRefused').textContent = exp.totals.REFUSED || 0;
+                document.getElementById('actualCost').textContent = `Actual cost: $${(exp.actualCost || 0).toFixed(4)}`;
+
+                // Rebuild charts
+                displayResultsFromData(exp.results, exp.totals);
+
+                document.getElementById('resultsSection').classList.add('visible');
+                renderDebugLog();
+            } else {
+                document.getElementById('resultsSection').classList.remove('visible');
+            }
+
+            updateCostEstimate();
+            renderExperimentHistory();
+        }
+
+        function displayResultsFromData(results, totals) {
+            const modelNames = [];
+            const dataA = [];
+            const dataB = [];
+            const dataRefused = [];
+
+            for (const [modelId, counts] of Object.entries(results)) {
+                const checkbox = document.querySelector(`[data-model="${modelId}"]`);
+                const name = checkbox ? checkbox.querySelector('.model-name').textContent : modelId;
+                modelNames.push(name);
+                dataA.push(counts.A || 0);
+                dataB.push(counts.B || 0);
+                dataRefused.push(counts.REFUSED || 0);
+            }
+
+            // Bar chart
+            if (barChart) barChart.destroy();
+            barChart = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [
+                        { label: 'Option A', data: dataA, backgroundColor: '#2563eb' },
+                        { label: 'Option B', data: dataB, backgroundColor: '#ea580c' },
+                        { label: 'Refused', data: dataRefused, backgroundColor: '#9ca3af' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            // Pie chart
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(document.getElementById('pieChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Option A', 'Option B', 'Refused'],
+                    datasets: [{
+                        data: [totals.A || 0, totals.B || 0, totals.REFUSED || 0],
+                        backgroundColor: ['#2563eb', '#ea580c', '#9ca3af']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function createExperimentSnapshot() {
+            const selectedModels = [];
+            document.querySelectorAll('.model-checkbox').forEach(checkbox => {
+                if (checkbox.querySelector('input').checked) {
+                    selectedModels.push(checkbox.dataset.model);
+                }
+            });
+
+            return {
+                id: currentExperimentId || Date.now().toString(),
+                timestamp: Date.now(),
+                optionAText: document.getElementById('optionA').value,
+                optionBText: document.getElementById('optionB').value,
+                question: document.getElementById('question').value,
+                queryCount: parseInt(document.getElementById('queryCount').value) || 10,
+                filesA: filesA.map(f => ({ name: f.name, size: f.size, type: f.type, base64: f.base64 })),
+                filesB: filesB.map(f => ({ name: f.name, size: f.size, type: f.type, base64: f.base64 })),
+                selectedModels: selectedModels,
+                debugLog: debugLog
+            };
+        }
+
         // Retry with exponential backoff for rate limits
         async function withRetry(fn, maxRetries = 5) {
             let lastError;
@@ -1354,7 +1934,7 @@ Your entire response must be exactly one character: A or B.`;
                     { role: 'system', content: SYSTEM_PROMPT },
                     { role: 'user', content: content }
                 ],
-                max_tokens: 256
+                max_tokens: 1024
             };
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1417,7 +1997,7 @@ Your entire response must be exactly one character: A or B.`;
                 messages: [
                     { role: 'user', content: content }
                 ],
-                max_tokens: 256
+                max_tokens: 1024
             };
 
             const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1519,7 +2099,7 @@ Your entire response must be exactly one character: A or B.`;
             let prompt = `${question}\n\n`;
             prompt += `=== OPTION A ===\n${labelAContent || '(see attached files)'}\n\n`;
             prompt += `=== OPTION B ===\n${labelBContent || '(see attached files)'}\n\n`;
-            prompt += `Which option is better: A or B? Answer with just the letter.`;
+            prompt += `Which option is better: A or B?`;
 
             return prompt;
         }
@@ -1535,9 +2115,15 @@ Your entire response must be exactly one character: A or B.`;
         function parseAnswer(answer, aFirst) {
             const normalized = answer.toUpperCase().trim();
 
-            // Try exact match first
             let choice = null;
-            if (normalized === 'A' || normalized === 'B') {
+
+            // First, look for "ANSWER: A" or "ANSWER: B" format
+            const answerMatch = normalized.match(/ANSWER:\s*([AB])\b/);
+            if (answerMatch) {
+                choice = answerMatch[1];
+            }
+            // Try exact match
+            else if (normalized === 'A' || normalized === 'B') {
                 choice = normalized;
             }
             // Check for "A" or "B" at start (e.g., "A." or "A\n...")
@@ -1551,7 +2137,7 @@ Your entire response must be exactly one character: A or B.`;
             else if (/\bOPTION\s*B\b/i.test(normalized) && !/\bOPTION\s*A\b/i.test(normalized)) {
                 choice = 'B';
             }
-            // Last resort: check if only A or only B appears
+            // Last resort: check if only A or only B appears as standalone
             else if (/\bA\b/.test(normalized) && !/\bB\b/.test(normalized)) {
                 choice = 'A';
             }
@@ -1573,6 +2159,9 @@ Your entire response must be exactly one character: A or B.`;
 
         // Run experiment
         async function runExperiment() {
+            // Create new experiment ID for fresh runs
+            currentExperimentId = Date.now().toString();
+
             const models = getSelectedModels();
             const queryCount = parseInt(document.getElementById('queryCount').value) || 10;
             const optionAText = document.getElementById('optionA').value;
@@ -1649,44 +2238,61 @@ Your entire response must be exactly one character: A or B.`;
                 // Clear debug log
                 clearDebugLog();
 
-                // Run tasks sequentially to avoid rate limits
+                // Group tasks by provider for parallel execution across providers
+                const tasksByProvider = {};
                 for (const task of tasks) {
-                    if (abortController.signal.aborted) break;
-
-                    const prompt = buildPrompt(optionAText, optionBText, filesA, filesB, question, task.aFirst);
-                    const files = getFilesForPrompt(task.aFirst);
-                    const apiKey = getApiKey(task.model.provider);
-
-                    let result;
-                    if (task.model.provider === 'openai') {
-                        result = await withRetry(() => callOpenAI(task.model.id, prompt, files, apiKey, abortController.signal));
-                    } else if (task.model.provider === 'anthropic') {
-                        result = await withRetry(() => callAnthropic(task.model.id, prompt, files, apiKey, abortController.signal));
-                    } else if (task.model.provider === 'google') {
-                        result = await withRetry(() => callGoogle(task.model.id, prompt, files, apiKey, abortController.signal));
+                    const provider = task.model.provider;
+                    if (!tasksByProvider[provider]) {
+                        tasksByProvider[provider] = [];
                     }
-
-                    const answer = parseAnswer(result.answer, task.aFirst);
-                    results[task.model.id][answer]++;
-
-                    // Log debug entry
-                    addDebugEntry({
-                        model: task.model.id,
-                        order: task.aFirst ? 'A first' : 'B first',
-                        rawAnswer: result.answer,
-                        parsedAnswer: answer,
-                        requestBody: result.requestBody,
-                        responseBody: result.responseBody
-                    });
-
-                    tokensByModel[task.model.id].input += result.inputTokens;
-                    tokensByModel[task.model.id].output += result.outputTokens;
-                    totalInputTokens += result.inputTokens;
-                    totalOutputTokens += result.outputTokens;
-
-                    completedQueries++;
-                    updateProgress(completedQueries, totalQueries);
+                    tasksByProvider[provider].push(task);
                 }
+
+                // Helper to process tasks for a single provider sequentially
+                async function processProviderTasks(providerTasks) {
+                    for (const task of providerTasks) {
+                        if (abortController.signal.aborted) break;
+
+                        const prompt = buildPrompt(optionAText, optionBText, filesA, filesB, question, task.aFirst);
+                        const files = getFilesForPrompt(task.aFirst);
+                        const apiKey = getApiKey(task.model.provider);
+
+                        let result;
+                        if (task.model.provider === 'openai') {
+                            result = await withRetry(() => callOpenAI(task.model.id, prompt, files, apiKey, abortController.signal));
+                        } else if (task.model.provider === 'anthropic') {
+                            result = await withRetry(() => callAnthropic(task.model.id, prompt, files, apiKey, abortController.signal));
+                        } else if (task.model.provider === 'google') {
+                            result = await withRetry(() => callGoogle(task.model.id, prompt, files, apiKey, abortController.signal));
+                        }
+
+                        const answer = parseAnswer(result.answer, task.aFirst);
+                        results[task.model.id][answer]++;
+
+                        // Log debug entry
+                        addDebugEntry({
+                            model: task.model.id,
+                            order: task.aFirst ? 'A first' : 'B first',
+                            rawAnswer: result.answer,
+                            parsedAnswer: answer,
+                            requestBody: result.requestBody,
+                            responseBody: result.responseBody
+                        });
+
+                        tokensByModel[task.model.id].input += result.inputTokens;
+                        tokensByModel[task.model.id].output += result.outputTokens;
+                        totalInputTokens += result.inputTokens;
+                        totalOutputTokens += result.outputTokens;
+
+                        completedQueries++;
+                        updateProgress(completedQueries, totalQueries);
+                    }
+                }
+
+                // Run all providers in parallel, but sequential within each provider
+                await Promise.all(
+                    Object.values(tasksByProvider).map(providerTasks => processProviderTasks(providerTasks))
+                );
 
                 // Render debug log
                 renderDebugLog();
@@ -1824,6 +2430,13 @@ Your entire response must be exactly one character: A or B.`;
             // Show results section
             document.getElementById('resultsSection').classList.add('visible');
             document.getElementById('progressSection').style.display = 'none';
+
+            // Save experiment to history
+            const experiment = createExperimentSnapshot();
+            experiment.results = results;
+            experiment.totals = { A: totalA, B: totalB, REFUSED: totalRefused };
+            experiment.actualCost = actualCost;
+            saveExperiment(experiment);
         }
     </script>
 </body>
