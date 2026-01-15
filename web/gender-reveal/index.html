@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gender Reveal</title>
+    <meta name="description" content="A special balloon pop gender reveal game">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            background: linear-gradient(180deg, #a9d8f7 0%, #c6e6fb 45%, #efb8cf 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background 2.5s ease-in;
+        }
+
+        body.revealed {
+            background: linear-gradient(to bottom, #b8e0f7, #7ec8e8);
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .balloon {
+            position: absolute;
+            width: 70px;
+            height: 88px;
+            cursor: pointer;
+            opacity: 1;
+            transition: transform 0.1s, opacity 0.6s ease-out;
+            -webkit-tap-highlight-color: transparent;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        .balloon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.7), transparent 35%),
+                        radial-gradient(ellipse, var(--color) 0%, var(--color-dark) 100%);
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            pointer-events: none;
+        }
+
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 12px solid var(--color-dark);
+            pointer-events: none;
+        }
+
+        .balloon:hover {
+            transform: scale(1.08);
+        }
+
+        .balloon:active {
+            transform: scale(0.95);
+        }
+
+        .confetti {
+            position: absolute;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        .emoji-reveal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: min(200px, 40vw);
+            opacity: 0;
+            transition: opacity 2.5s ease-in;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .emoji-reveal.visible {
+            opacity: 1;
+        }
+
+        .play-again {
+            position: fixed;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1971c2;
+            background: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 1s ease-in, transform 0.15s;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            pointer-events: none;
+        }
+
+        .play-again.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .play-again:hover {
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        .play-again:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div class="emoji-reveal" id="emoji">👦</div>
+    <button class="play-again" id="playAgain">Play again</button>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const emojiEl = document.getElementById('emoji');
+        const playAgainBtn = document.getElementById('playAgain');
+
+        const BALLOON_COLORS = [
+            { color: '#ff6b6b', dark: '#d94545' },
+            { color: '#ffa94d', dark: '#e08c30' },
+            { color: '#ffd43b', dark: '#e0b820' },
+            { color: '#69db7c', dark: '#45b858' },
+            { color: '#4dabf7', dark: '#2b8fd9' },
+            { color: '#9775fa', dark: '#7550e0' },
+            { color: '#f783ac', dark: '#e05588' },
+        ];
+        const INTRO_COLORS = BALLOON_COLORS.filter(colorObj => {
+            return colorObj.color !== '#4dabf7' && colorObj.color !== '#f783ac';
+        });
+
+        const RAINBOW_CONFETTI = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#9775fa', '#f783ac'];
+        const BLUE_CONFETTI = ['#4dabf7', '#339af0', '#228be6', '#1c7ed6', '#74c0fc', '#a5d8ff', '#d0ebff'];
+        const BLUE_BALLOON_COLOR = '#4dabf7';
+
+        let state = 'intro';
+        let popCount = 0;
+        let balloons = [];
+        let confettiPieces = [];
+        let spawnInterval = null;
+
+        function getSpawnInterval() {
+            return window.innerWidth < 600 ? 450 : 700;
+        }
+
+        function getRiseSpeedMultiplier() {
+            return window.innerWidth < 600 ? 1.35 : 1;
+        }
+
+        function createBalloon(x, y, colorObj, isStationary = false, fadeIn = false) {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            balloon.style.setProperty('--color', colorObj.color);
+            balloon.style.setProperty('--color-dark', colorObj.dark);
+            balloon.style.left = x + 'px';
+            balloon.style.top = y + 'px';
+            if (fadeIn) {
+                balloon.style.opacity = '0';
+            }
+
+            const balloonData = {
+                el: balloon,
+                x: x,
+                y: y,
+                wobbleOffset: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.015 + Math.random() * 0.01,
+                riseSpeed: (0.8 + Math.random() * 0.4) * getRiseSpeedMultiplier(),
+                wobbleAmount: 25 + Math.random() * 15,
+                isStationary: isStationary,
+                color: colorObj,
+                popped: false
+            };
+
+            balloon.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!balloonData.popped) {
+                    balloonData.popped = true;
+                    popBalloon(balloonData);
+                }
+            });
+
+            container.appendChild(balloon);
+            if (fadeIn) {
+                requestAnimationFrame(() => {
+                    balloon.style.opacity = '1';
+                });
+            }
+            return balloonData;
+        }
+
+        function createConfetti(x, y, isBlue = false) {
+            const colors = isBlue ? BLUE_CONFETTI : RAINBOW_CONFETTI;
+            const count = isBlue ? 80 : 35;
+            const speed = isBlue ? 6 : 5;
+
+            for (let i = 0; i < count; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = x + 'px';
+                confetti.style.top = y + 'px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                const size = 6 + Math.random() * 10;
+                const isCircle = Math.random() > 0.5;
+                confetti.style.width = size + 'px';
+                confetti.style.height = (isCircle ? size : size * 0.6) + 'px';
+                confetti.style.borderRadius = isCircle ? '50%' : '2px';
+
+                container.appendChild(confetti);
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = (speed * 0.5) + Math.random() * speed;
+
+                confettiPieces.push({
+                    el: confetti,
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * velocity,
+                    vy: Math.sin(angle) * velocity - 4,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 15,
+                    gravity: isBlue ? 0.025 : 0.06,
+                    drag: isBlue ? 0.995 : 0.985
+                });
+            }
+        }
+
+        function popBalloon(balloonData) {
+            if (state === 'reveal') return;
+
+            const idx = balloons.indexOf(balloonData);
+            if (idx === -1) return;
+
+            balloons.splice(idx, 1);
+
+            const rect = balloonData.el.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            balloonData.el.remove();
+
+            if (state === 'intro') {
+                createConfetti(centerX, centerY, false);
+                state = 'playing';
+                popCount = 0;
+                startGame();
+            } else if (state === 'playing') {
+                popCount++;
+
+                if (popCount >= 10 && balloonData.color.color === BLUE_BALLOON_COLOR) {
+                    triggerReveal();
+                } else {
+                    createConfetti(centerX, centerY, false);
+                }
+            }
+        }
+
+        function startGame() {
+            spawnBalloon();
+            spawnBalloon();
+            spawnBalloonInView();
+            spawnBalloonInView();
+
+            spawnInterval = setInterval(() => {
+                if (state === 'playing') {
+                    spawnBalloon();
+                    spawnBalloonInView();
+                    if (Math.random() < 0.6) {
+                        spawnBalloonInView();
+                    }
+                }
+            }, getSpawnInterval());
+        }
+
+        function spawnBalloon() {
+            if (state !== 'playing') return;
+
+            const balloonWidth = 70;
+            const margin = 30;
+            const x = margin + Math.random() * (window.innerWidth - balloonWidth - margin * 2);
+            const y = window.innerHeight + 50;
+            const colorObj = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+
+            const balloon = createBalloon(x, y, colorObj);
+            balloons.push(balloon);
+        }
+
+        function spawnBalloonInView() {
+            if (state !== 'playing') return;
+
+            const balloonWidth = 70;
+            const margin = 30;
+            const x = margin + Math.random() * (window.innerWidth - balloonWidth - margin * 2);
+            const y = window.innerHeight * (0.2 + Math.random() * 0.6);
+            const colorObj = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+
+            const balloon = createBalloon(x, y, colorObj, false, true);
+            balloons.push(balloon);
+        }
+
+        function triggerReveal() {
+            state = 'reveal';
+
+            if (spawnInterval) {
+                clearInterval(spawnInterval);
+                spawnInterval = null;
+            }
+
+            balloons.forEach(b => {
+                const rect = b.el.getBoundingClientRect();
+                createConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, true);
+                b.el.remove();
+            });
+            balloons = [];
+
+            const checkConfettiCleared = setInterval(() => {
+                if (confettiPieces.length === 0) {
+                    clearInterval(checkConfettiCleared);
+                    showReveal();
+                }
+            }, 100);
+
+            setTimeout(() => {
+                clearInterval(checkConfettiCleared);
+                showReveal();
+            }, 8000);
+        }
+
+        function showReveal() {
+            if (emojiEl.classList.contains('visible')) return;
+            document.body.classList.add('revealed');
+            emojiEl.classList.add('visible');
+            setTimeout(() => {
+                playAgainBtn.classList.add('visible');
+            }, 2000);
+        }
+
+        function resetGame() {
+            // Hide UI elements
+            emojiEl.classList.remove('visible');
+            playAgainBtn.classList.remove('visible');
+            document.body.classList.remove('revealed');
+
+            // Clear any remaining confetti
+            confettiPieces.forEach(c => c.el.remove());
+            confettiPieces = [];
+
+            // Clear any remaining balloons
+            balloons.forEach(b => b.el.remove());
+            balloons = [];
+
+            // Reset state
+            state = 'intro';
+            popCount = 0;
+
+            // Create new intro balloon
+            const centerX = window.innerWidth / 2 - 35;
+            const centerY = window.innerHeight / 2 - 44;
+            const colorObj = INTRO_COLORS[Math.floor(Math.random() * INTRO_COLORS.length)];
+
+            const introBalloon = createBalloon(centerX, centerY, colorObj, true);
+            balloons.push(introBalloon);
+        }
+
+        playAgainBtn.addEventListener('click', resetGame);
+        document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+
+        function animate() {
+            balloons.forEach(b => {
+                if (b.isStationary) return;
+
+                b.y -= b.riseSpeed;
+                b.wobbleOffset += b.wobbleSpeed;
+                const wobbleX = Math.sin(b.wobbleOffset) * b.wobbleAmount;
+
+                b.el.style.left = (b.x + wobbleX) + 'px';
+                b.el.style.top = b.y + 'px';
+            });
+
+            balloons = balloons.filter(b => {
+                if (b.y < -120) {
+                    b.el.remove();
+                    return false;
+                }
+                return true;
+            });
+
+            confettiPieces.forEach(c => {
+                c.vy += c.gravity;
+                c.vx *= c.drag;
+                c.vy *= c.drag;
+                c.x += c.vx;
+                c.y += c.vy;
+                c.rotation += c.rotationSpeed;
+
+                c.el.style.transform = `translate(${c.x - parseFloat(c.el.style.left)}px, ${c.y - parseFloat(c.el.style.top)}px) rotate(${c.rotation}deg)`;
+            });
+
+            confettiPieces = confettiPieces.filter(c => {
+                if (c.y > window.innerHeight + 50) {
+                    c.el.remove();
+                    return false;
+                }
+                return true;
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function init() {
+            const centerX = window.innerWidth / 2 - 35;
+            const centerY = window.innerHeight / 2 - 44;
+            const colorObj = INTRO_COLORS[Math.floor(Math.random() * INTRO_COLORS.length)];
+
+            const introBalloon = createBalloon(centerX, centerY, colorObj, true);
+            balloons.push(introBalloon);
+
+            animate();
+        }
+
+        // Initialize immediately - script is at end of body so DOM is ready
+        init();
+    </script>
+</body>
+</html>
