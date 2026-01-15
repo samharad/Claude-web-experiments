@@ -39,6 +39,10 @@
             opacity: 1;
         }
 
+        body.revealed-instant::before {
+            transition: none;
+        }
+
         #game-container {
             width: 100%;
             height: 100%;
@@ -352,6 +356,10 @@
                 spawnInterval = null;
             }
 
+            document.body.classList.add('revealed', 'revealed-instant');
+            requestAnimationFrame(() => {
+                document.body.classList.remove('revealed-instant');
+            });
             tintConfettiBlue();
             balloons.forEach(b => {
                 const rect = b.el.getBoundingClientRect();
@@ -383,7 +391,6 @@
 
         function showReveal() {
             if (emojiEl.classList.contains('visible')) return;
-            document.body.classList.add('revealed');
             emojiEl.classList.add('visible');
             setTimeout(() => {
                 playAgainBtn.classList.add('visible');
@@ -395,6 +402,7 @@
             emojiEl.classList.remove('visible');
             playAgainBtn.classList.remove('visible');
             document.body.classList.remove('revealed');
+            document.body.classList.remove('revealed-instant');
 
             // Clear any remaining confetti
             confettiPieces = [];
