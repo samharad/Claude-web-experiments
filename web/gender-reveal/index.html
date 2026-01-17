@@ -178,35 +178,12 @@
             transform: translateX(-50%) scale(0.95);
         }
 
-        .helena-photo {
-            position: fixed;
-            left: 50%;
-            top: 6%;
-            transform: translateX(-50%);
-            width: min(26vw, 180px);
-            height: auto;
-            opacity: 0;
-            transition: opacity 2s ease-in;
-            z-index: 900;
-            pointer-events: none;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-        }
-
-        .helena-photo.visible {
-            opacity: 1;
-        }
-
-        body.instant-reset .helena-photo {
-            transition: none;
-        }
     </style>
 </head>
 <body>
     <div id="game-container"></div>
     <canvas id="confetti-canvas"></canvas>
     <div class="emoji-reveal" id="emoji">👦</div>
-    <img class="helena-photo" id="helenaPhoto" src="IMG_7165.jpeg" alt="Sad Helena">
     <button class="play-again" id="playAgain">Play again</button>
 
     <script>
@@ -214,7 +191,6 @@
         const confettiCanvas = document.getElementById('confetti-canvas');
         const confettiCtx = confettiCanvas.getContext('2d');
         const emojiEl = document.getElementById('emoji');
-        const helenaPhotoEl = document.getElementById('helenaPhoto');
         const playAgainBtn = document.getElementById('playAgain');
 
         const BALLOON_COLORS = [
@@ -240,7 +216,6 @@
         let confettiPieces = [];
         let spawnInterval = null;
         let revealTimer = null;
-        let helenaTimer = null;
         let playAgainTimer = null;
 
         function getSpawnInterval() {
@@ -455,10 +430,6 @@
                 emojiEl.classList.add('visible');
                 revealTimer = null;
             }, 1500);
-            helenaTimer = setTimeout(() => {
-                helenaPhotoEl.classList.add('visible');
-                helenaTimer = null;
-            }, 3500);
             playAgainTimer = setTimeout(() => {
                 playAgainBtn.classList.add('visible');
                 playAgainTimer = null;
@@ -471,10 +442,6 @@
                 clearTimeout(revealTimer);
                 revealTimer = null;
             }
-            if (helenaTimer) {
-                clearTimeout(helenaTimer);
-                helenaTimer = null;
-            }
             if (playAgainTimer) {
                 clearTimeout(playAgainTimer);
                 playAgainTimer = null;
@@ -482,7 +449,6 @@
 
             // Hide UI elements
             emojiEl.classList.remove('visible');
-            helenaPhotoEl.classList.remove('visible');
             playAgainBtn.classList.remove('visible');
             document.body.classList.remove('revealed');
             document.body.classList.remove('revealed-instant');
