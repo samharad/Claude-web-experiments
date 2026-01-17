@@ -39,6 +39,12 @@ for (const dir of dirs) {
     });
 }
 
+const buildTimestamp = new Date();
+const buildTimestampFormatted = buildTimestamp
+    .toISOString()
+    .replace('T', ' ')
+    .replace(/\.\d{3}Z$/, ' UTC');
+
 // Generate index.html
 const indexHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -55,6 +61,12 @@ const indexHtml = `<!DOCTYPE html>
             line-height: 1.6;
         }
         h1 {
+            margin-bottom: 2rem;
+        }
+        .deploy-time {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: -1.5rem;
             margin-bottom: 2rem;
         }
         ul {
@@ -81,6 +93,7 @@ const indexHtml = `<!DOCTYPE html>
 </head>
 <body>
     <h1>Tools</h1>
+    <div class="deploy-time">Deployed: ${buildTimestampFormatted}</div>
     <ul>
 ${tools.map(tool => `        <li>
             <a href="${tool.url}">${tool.title}</a>${tool.description ? `\n            <div class="description">${tool.description}</div>` : ''}
