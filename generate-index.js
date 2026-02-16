@@ -71,18 +71,60 @@ const indexHtml = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools</title>
     <style>
+        :root {
+            --bg: #fff;
+            --fg: #000;
+            --muted: #666;
+            --faint: #999;
+            --link: #0066cc;
+            --border: #ddd;
+        }
+        html.night {
+            --bg: #1a1a2e;
+            --fg: #e0e0e0;
+            --muted: #aaa;
+            --faint: #777;
+            --link: #5ba3f5;
+            --border: #333;
+        }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
             line-height: 1.6;
+            background: var(--bg);
+            color: var(--fg);
+            transition: background 0.2s, color 0.2s;
         }
         h1 {
             margin-bottom: 2rem;
         }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .top-bar h1 {
+            margin: 0;
+        }
+        .night-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            color: var(--fg);
+            transition: border-color 0.2s;
+        }
+        .night-toggle:hover {
+            border-color: var(--muted);
+        }
         .deploy-time {
-            color: #666;
+            color: var(--muted);
             font-size: 0.9rem;
             margin-top: -1.5rem;
             margin-bottom: 2rem;
@@ -101,7 +143,7 @@ const indexHtml = `<!DOCTYPE html>
             gap: 0.3rem;
         }
         .sort-controls span {
-            color: #666;
+            color: var(--muted);
             font-size: 0.9rem;
         }
         ul {
@@ -112,7 +154,7 @@ const indexHtml = `<!DOCTYPE html>
             margin: 1rem 0;
         }
         a {
-            color: #0066cc;
+            color: var(--link);
             text-decoration: none;
             font-weight: 600;
         }
@@ -120,12 +162,12 @@ const indexHtml = `<!DOCTYPE html>
             text-decoration: underline;
         }
         .description {
-            color: #666;
+            color: var(--muted);
             font-size: 0.9rem;
             margin-top: 0.25rem;
         }
         .modified {
-            color: #999;
+            color: var(--faint);
             font-size: 0.8rem;
             margin-top: 0.15rem;
             display: none;
@@ -133,7 +175,10 @@ const indexHtml = `<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <h1>Tools</h1>
+    <div class="top-bar">
+        <h1>Tools</h1>
+        <button class="night-toggle" id="night-toggle" title="Toggle night mode">🌙</button>
+    </div>
     <div class="deploy-time">Deployed: ${buildTimestampFormatted}</div>
     <div class="sort-controls">
         <span>Sort by:</span>
@@ -175,6 +220,18 @@ ${tools.map(renderTool).join('\n')}
                 sortList(saved);
             }
         }
+
+        const nightBtn = document.getElementById('night-toggle');
+        function applyNight(on) {
+            document.documentElement.classList.toggle('night', on);
+            nightBtn.textContent = on ? '☀️' : '🌙';
+        }
+        applyNight(localStorage.getItem('tools-night') === '1');
+        nightBtn.addEventListener('click', () => {
+            const on = !document.documentElement.classList.contains('night');
+            localStorage.setItem('tools-night', on ? '1' : '0');
+            applyNight(on);
+        });
     </script>
 </body>
 </html>
