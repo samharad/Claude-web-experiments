@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Find LeetCode problems matching your coding challenge description">
+    <title>LeetCode Problem Search</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .layout {
+            display: flex;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            gap: 1.5rem;
+        }
+
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+        }
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            max-width: 700px;
+        }
+
+        @media (max-width: 800px) {
+            .layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+            .main {
+                order: 1;
+            }
+        }
+
+        h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .subtitle {
+            color: #666;
+            margin: 0 0 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .api-key-section {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .api-key-section.hidden {
+            display: none;
+        }
+
+        .api-key-section p {
+            margin: 0 0 0.75rem;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+
+        .api-key-section a {
+            color: #0056b3;
+        }
+
+        .api-key-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .api-key-input-group input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .api-key-input-group button {
+            padding: 0.5rem 1rem;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .api-key-input-group button:hover {
+            background: #218838;
+        }
+
+        .key-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #155724;
+        }
+
+        .key-status.hidden {
+            display: none;
+        }
+
+        .key-status button {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 0.85rem;
+            text-decoration: underline;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #f89f1b;
+            box-shadow: 0 0 0 2px rgba(248, 159, 27, 0.15);
+        }
+
+        .search-button {
+            width: 100%;
+            padding: 1rem;
+            background: #f89f1b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .search-button:hover:not(:disabled) {
+            background: #e08a0c;
+        }
+
+        .search-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .search-button.loading {
+            background: #6c757d;
+        }
+
+        .error-display {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #721c24;
+        }
+
+        .error-display.hidden {
+            display: none;
+        }
+
+        .results {
+            margin-top: 1.5rem;
+        }
+
+        .results.hidden {
+            display: none;
+        }
+
+        .results-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .no-results {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .problem-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .problem-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .problem-card:hover {
+            border-color: #f89f1b;
+            box-shadow: 0 2px 8px rgba(248, 159, 27, 0.15);
+        }
+
+        .problem-card a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .problem-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .problem-title:hover {
+            color: #f89f1b;
+        }
+
+        .problem-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .difficulty {
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .problem-reason {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .similar-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .similar-header {
+            font-weight: 500;
+            color: #666;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        /* Sidebar / History styles */
+        .history-panel {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .history-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .history-clear {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .history-clear:hover {
+            color: #dc3545;
+        }
+
+        .history-list {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .history-empty {
+            padding: 2rem 1rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .history-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item:hover {
+            background: #fafafa;
+        }
+
+        .history-item.active {
+            background: #fff8ee;
+            border-left: 3px solid #f89f1b;
+        }
+
+        .history-query {
+            font-size: 0.9rem;
+            color: #333;
+            margin-bottom: 0.35rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .history-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .history-count {
+            color: #666;
+        }
+
+        .history-delete {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .history-delete:hover {
+            color: #dc3545;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <main class="main">
+            <h1>LeetCode Problem Search</h1>
+            <p class="subtitle">Describe a coding challenge and find matching LeetCode problems</p>
+
+            <div id="apiKeySection" class="api-key-section">
+                <p>
+                    Enter your OpenAI API key to use this tool.
+                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get your API key here</a>
+                </p>
+                <div class="api-key-input-group">
+                    <input type="password" id="apiKeyInput" placeholder="sk-...">
+                    <button onclick="saveApiKey()">Save</button>
+                </div>
+            </div>
+
+            <div id="keyStatus" class="key-status hidden">
+                <span>API key saved</span>
+                <button onclick="clearApiKey()">Clear key</button>
+            </div>
+
+            <div class="form-group">
+                <label for="problemDescription">Problem Description</label>
+                <textarea id="problemDescription" placeholder="Describe the coding problem...&#10;&#10;Example: Given an array of integers, find two numbers that add up to a target sum"></textarea>
+            </div>
+
+            <button id="searchButton" class="search-button" onclick="searchProblems()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+                Search LeetCode
+            </button>
+
+            <div id="errorDisplay" class="error-display hidden"></div>
+
+            <div id="results" class="results hidden"></div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="history-panel">
+                <div class="history-header">
+                    <span class="history-title">History</span>
+                    <button class="history-clear" onclick="clearHistory()">Clear all</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="history-empty">No searches yet</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'openai_api_key';
+        const HISTORY_KEY = 'leetcode_search_history';
+        let currentHistoryId = null;
+
+        function init() {
+            const apiKey = localStorage.getItem(STORAGE_KEY);
+            updateKeyUI(!!apiKey);
+            renderHistory();
+        }
+
+        function updateKeyUI(hasKey) {
+            document.getElementById('apiKeySection').classList.toggle('hidden', hasKey);
+            document.getElementById('keyStatus').classList.toggle('hidden', !hasKey);
+            document.getElementById('searchButton').disabled = !hasKey;
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            const key = input.value.trim();
+            if (key) {
+                localStorage.setItem(STORAGE_KEY, key);
+                input.value = '';
+                updateKeyUI(true);
+            }
+        }
+
+        function clearApiKey() {
+            localStorage.removeItem(STORAGE_KEY);
+            updateKeyUI(false);
+            hideError();
+            document.getElementById('results').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorDisplay');
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorDisplay').classList.add('hidden');
+        }
+
+        // History functions
+        function getHistory() {
+            const data = localStorage.getItem(HISTORY_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveHistory(history) {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+
+        function addToHistory(query, result) {
+            const history = getHistory();
+            const entry = {
+                id: Date.now().toString(),
+                query,
+                result,
+                timestamp: new Date().toISOString()
+            };
+            history.unshift(entry);
+            // Keep only last 50 entries
+            if (history.length > 50) history.pop();
+            saveHistory(history);
+            currentHistoryId = entry.id;
+            renderHistory();
+            return entry.id;
+        }
+
+        function deleteHistoryItem(id, event) {
+            event.stopPropagation();
+            const history = getHistory().filter(h => h.id !== id);
+            saveHistory(history);
+            if (currentHistoryId === id) {
+                currentHistoryId = null;
+            }
+            renderHistory();
+        }
+
+        function clearHistory() {
+            if (!confirm('Clear all search history?')) return;
+            saveHistory([]);
+            currentHistoryId = null;
+            renderHistory();
+        }
+
+        function loadHistoryItem(id) {
+            const history = getHistory();
+            const entry = history.find(h => h.id === id);
+            if (!entry) return;
+
+            currentHistoryId = id;
+            document.getElementById('problemDescription').value = entry.query;
+            displayResults(entry.result);
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            const container = document.getElementById('historyList');
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="history-empty">No searches yet</div>';
+                return;
+            }
+
+            container.innerHTML = history.map(entry => {
+                const date = new Date(entry.timestamp);
+                const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                const matchCount = (entry.result.exactMatches?.length || 0) + (entry.result.similarProblems?.length || 0);
+                const isActive = entry.id === currentHistoryId;
+
+                return `
+                    <div class="history-item ${isActive ? 'active' : ''}" onclick="loadHistoryItem('${entry.id}')">
+                        <div class="history-query">${escapeHtml(entry.query)}</div>
+                        <div class="history-meta">
+                            <span>${dateStr} &middot; <span class="history-count">${matchCount} result${matchCount !== 1 ? 's' : ''}</span></span>
+                            <button class="history-delete" onclick="deleteHistoryItem('${entry.id}', event)" title="Delete">&times;</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function searchProblems() {
+            const apiKey = localStorage.getItem(STORAGE_KEY);
+            if (!apiKey) {
+                showError('Please enter your API key first.');
+                return;
+            }
+
+            const description = document.getElementById('problemDescription').value.trim();
+            if (!description) {
+                showError('Please describe the problem you\'re looking for.');
+                return;
+            }
+
+            const button = document.getElementById('searchButton');
+            const resultsDiv = document.getElementById('results');
+
+            hideError();
+            resultsDiv.classList.add('hidden');
+            button.disabled = true;
+            button.classList.add('loading');
+            button.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" opacity="0.3"/>
+                    <path d="M12 2v4a8 8 0 0 1 8 8h4a12 12 0 0 0-12-12z"/>
+                </svg>
+                Searching...
+            `;
+
+            try {
+                const systemPrompt = `You are a LeetCode problem finder. Given a description of a coding challenge or algorithm problem, search the web for matching LeetCode problems.
+
+CRITICAL RULES:
+1. NEVER reveal any hints about the solution, approach, or algorithm used to solve the problem
+2. NEVER mention data structures or techniques that would give away how to solve it
+3. Only provide: problem title, LeetCode URL, difficulty level, and a brief neutral description of what the problem asks (not how to solve it)
+
+Respond in this exact JSON format:
+{
+  "exactMatches": [
+    {
+      "title": "Problem Title",
+      "url": "https://leetcode.com/problems/...",
+      "difficulty": "Easy|Medium|Hard",
+      "description": "Brief description of what the problem asks (NO solution hints)"
+    }
+  ],
+  "similarProblems": [
+    {
+      "title": "Problem Title", 
+      "url": "https://leetcode.com/problems/...",
+      "difficulty": "Easy|Medium|Hard",
+      "description": "Brief description and why it's related (NO solution hints)"
+    }
+  ],
+  "noMatch": false,
+  "message": "Optional message if no matches found"
+}
+
+IMPORTANT:
+- If no exact match exists, set exactMatches to empty array and populate similarProblems with related problems.
+- The "message" field is ONLY for when noMatch is true. Never reference problems in the message - all problems must be in the arrays.
+- If you found any related problems at all, they MUST appear in exactMatches or similarProblems arrays, not just mentioned in text.
+- If nothing relevant exists at all, set noMatch to true and provide a helpful message.`;
+
+                const response = await fetch('https://api.openai.com/v1/responses', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        tools: [{ type: 'web_search_preview' }],
+                        input: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: `Find LeetCode problems matching this description: ${description}` }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Extract text from the response - handle nested structure
+                let outputText = '';
+                if (data.output_text) {
+                    outputText = data.output_text;
+                } else if (data.output && Array.isArray(data.output)) {
+                    for (const item of data.output) {
+                        if (item.type === 'message' && item.content) {
+                            for (const content of item.content) {
+                                if (content.type === 'output_text' && content.text) {
+                                    outputText = content.text;
+                                    break;
+                                }
+                            }
+                        }
+                        if (outputText) break;
+                    }
+                }
+                
+                // Extract JSON from the response
+                const jsonMatch = outputText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error('Could not parse response from AI');
+                }
+
+                const result = JSON.parse(jsonMatch[0]);
+                addToHistory(description, result);
+                displayResults(result);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                button.disabled = false;
+                button.classList.remove('loading');
+                button.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    Search LeetCode
+                `;
+            }
+        }
+
+        function displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (result.noMatch) {
+                resultsDiv.innerHTML = `
+                    <div class="results-header">Results</div>
+                    <div class="no-results">
+                        <p>${escapeHtml(result.message || 'No matching LeetCode problems found for this description.')}</p>
+                    </div>
+                `;
+                resultsDiv.classList.remove('hidden');
+                return;
+            }
+
+            let html = '';
+
+            if (result.exactMatches && result.exactMatches.length > 0) {
+                html += `<div class="results-header">Matching Problems</div>`;
+                html += `<div class="problem-list">`;
+                for (const problem of result.exactMatches) {
+                    html += renderProblemCard(problem);
+                }
+                html += `</div>`;
+            }
+
+            if (result.similarProblems && result.similarProblems.length > 0) {
+                const isOnlySimilar = !result.exactMatches || result.exactMatches.length === 0;
+                if (isOnlySimilar) {
+                    html += `<div class="results-header">Similar Problems</div>`;
+                    html += `<div class="problem-list">`;
+                } else {
+                    html += `<div class="similar-section">`;
+                    html += `<div class="similar-header">Similar Problems</div>`;
+                    html += `<div class="problem-list">`;
+                }
+                for (const problem of result.similarProblems) {
+                    html += renderProblemCard(problem);
+                }
+                html += `</div>`;
+                if (!isOnlySimilar) {
+                    html += `</div>`;
+                }
+            }
+
+            if (!html) {
+                html = `
+                    <div class="results-header">Results</div>
+                    <div class="no-results">
+                        <p>No matching LeetCode problems found.</p>
+                    </div>
+                `;
+            }
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.remove('hidden');
+        }
+
+        function renderProblemCard(problem) {
+            const difficultyClass = (problem.difficulty || '').toLowerCase();
+            return `
+                <div class="problem-card">
+                    <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener">
+                        <div class="problem-title">${escapeHtml(problem.title)}</div>
+                        <div class="problem-meta">
+                            ${problem.difficulty ? `<span class="difficulty ${difficultyClass}">${escapeHtml(problem.difficulty)}</span>` : ''}
+                        </div>
+                        ${problem.description ? `<div class="problem-reason">${escapeHtml(problem.description)}</div>` : ''}
+                    </a>
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        init();
+    </script>
+</body>
+</html>
