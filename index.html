@@ -21,6 +21,23 @@
             margin-top: -1.5rem;
             margin-bottom: 2rem;
         }
+        .sort-controls {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .sort-controls label {
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .sort-controls span {
+            color: #666;
+            font-size: 0.9rem;
+        }
         ul {
             list-style: none;
             padding: 0;
@@ -41,40 +58,91 @@
             font-size: 0.9rem;
             margin-top: 0.25rem;
         }
+        .modified {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>Tools</h1>
-    <div class="deploy-time">Deployed: 2026-02-16 18:23:55 UTC</div>
-    <ul>
-        <li>
+    <div class="deploy-time">Deployed: 2026-02-16 20:34:37 UTC</div>
+    <div class="sort-controls">
+        <span>Sort by:</span>
+        <label><input type="radio" name="sort" value="alpha" checked> Alphabetical</label>
+        <label><input type="radio" name="sort" value="recent"> Recently modified</label>
+    </div>
+    <ul id="tool-list">
+        <li data-alpha="ai a/b test" data-modified="2026-01-14T16:26:55-08:00">
             <a href="web/ai-ab-test/">AI A/B Test</a>
             <div class="description">Use AI models to compare two options and visualize preference results</div>
+            <div class="modified" data-sort="recent">Modified: Jan 14, 2026</div>
         </li>
-        <li>
+        <li data-alpha="airplane flight animation" data-modified="2026-01-07T10:54:28-08:00">
             <a href="web/airplane-animation/">Airplane Flight Animation</a>
             <div class="description">Animate airplane flights between any two locations on an interactive map</div>
+            <div class="modified" data-sort="recent">Modified: Jan 7, 2026</div>
         </li>
-        <li>
+        <li data-alpha="rotatable dial" data-modified="2026-01-07T10:54:28-08:00">
             <a href="web/dial/">Rotatable Dial</a>
             <div class="description">Display a rotatable dial at a specified angle</div>
+            <div class="modified" data-sort="recent">Modified: Jan 7, 2026</div>
         </li>
-        <li>
+        <li data-alpha="gender reveal" data-modified="2026-01-16T17:27:36-08:00">
             <a href="web/gender-reveal/">Gender Reveal</a>
             <div class="description">A special balloon pop gender reveal game</div>
+            <div class="modified" data-sort="recent">Modified: Jan 16, 2026</div>
         </li>
-        <li>
+        <li data-alpha="leetcode problem search" data-modified="2026-02-15T16:49:30-08:00">
             <a href="web/leetcode-search/">LeetCode Problem Search</a>
             <div class="description">Find LeetCode problems matching your coding challenge description</div>
+            <div class="modified" data-sort="recent">Modified: Feb 15, 2026</div>
         </li>
-        <li>
+        <li data-alpha="timezone converter" data-modified="2026-02-16T10:23:55-08:00">
             <a href="web/timezone/">Timezone Converter</a>
             <div class="description">Quickly convert times between timezones</div>
+            <div class="modified" data-sort="recent">Modified: Feb 16, 2026</div>
         </li>
-        <li>
+        <li data-alpha="text to speech" data-modified="2026-01-18T12:38:20-08:00">
             <a href="web/tts/">Text to Speech</a>
             <div class="description">Text-to-speech using OpenAI</div>
+            <div class="modified" data-sort="recent">Modified: Jan 18, 2026</div>
         </li>
     </ul>
+    <script>
+        const list = document.getElementById('tool-list');
+        const radios = document.querySelectorAll('input[name="sort"]');
+        const modifiedDivs = document.querySelectorAll('.modified');
+
+        function sortList(order) {
+            const items = Array.from(list.children);
+            items.sort((a, b) => {
+                if (order === 'recent') {
+                    const am = a.dataset.modified || '';
+                    const bm = b.dataset.modified || '';
+                    return bm.localeCompare(am);
+                }
+                return a.dataset.alpha.localeCompare(b.dataset.alpha);
+            });
+            items.forEach(item => list.appendChild(item));
+            modifiedDivs.forEach(el => el.style.display = order === 'recent' ? 'block' : 'none');
+        }
+
+        radios.forEach(radio => radio.addEventListener('change', () => {
+            localStorage.setItem('tools-sort', radio.value);
+            sortList(radio.value);
+        }));
+
+        const saved = localStorage.getItem('tools-sort');
+        if (saved) {
+            const target = document.querySelector('input[name="sort"][value="' + saved + '"]');
+            if (target) {
+                target.checked = true;
+                sortList(saved);
+            }
+        }
+    </script>
 </body>
 </html>
