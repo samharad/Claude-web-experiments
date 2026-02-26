@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stamped Year</title>
+  <meta name="description" content="A hand-inked year calendar for stamping daily rituals" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Gochi+Hand&display=swap');
+
+    :root {
+      --ink: #3a2f2a;
+      --paper: #f6f1e6;
+      --paper-shadow: rgba(40, 30, 20, 0.22);
+      --accent: #b08a5e;
+      --modal: rgba(30, 20, 15, 0.55);
+      --panel: #f7f1e7;
+      --panel-edge: #e2d6c3;
+      --button: #e7dbc7;
+      --button-hover: #dcc9aa;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 10%, #fbf6ee 0%, #f4ecdf 55%, #efe3d1 100%);
+      color: var(--ink);
+      font-family: "Cormorant Garamond", serif;
+      overflow-y: auto;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      min-height: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    #calendar-view {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .paper {
+      position: relative;
+      width: 100vw;
+      min-height: 100vh;
+      height: auto;
+      background: var(--paper);
+      box-shadow: none;
+      border-radius: 0;
+      overflow: hidden;
+    }
+
+    #calendar-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    #calendar-svg text {
+      font-variant-numeric: lining-nums tabular-nums;
+      font-feature-settings: "lnum" 1, "tnum" 1, "liga" 0, "clig" 0;
+      text-rendering: geometricPrecision;
+    }
+
+    #weekday-sticky {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0;
+      display: grid;
+      align-items: center;
+      pointer-events: none;
+      z-index: 15;
+      color: var(--ink);
+      font-family: "Gochi Hand", cursive;
+      font-size: 12px;
+      letter-spacing: 2.2px;
+      text-align: center;
+      background: var(--paper);
+      padding: 0;
+      border-radius: 4px;
+      box-shadow: none;
+    }
+
+    .weekday-sticky-item {
+      white-space: nowrap;
+    }
+
+    .floating-button {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--button);
+      border: 1px solid var(--panel-edge);
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(40, 30, 20, 0.25);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .floating-button:hover {
+      background: var(--button-hover);
+      transform: translateY(-2px);
+    }
+
+    .stamp-dock {
+      position: absolute;
+      right: 24px;
+      bottom: 24px;
+      z-index: 20;
+      display: grid;
+      justify-items: end;
+      gap: 10px;
+    }
+
+    .stamp-panel {
+      background: rgba(247, 241, 231, 0.98);
+      border: 1px solid var(--panel-edge);
+      border-radius: 20px;
+      padding: 18px 20px;
+      min-width: 700px;
+      max-width: min(760px, calc(100vw - 40px));
+      box-shadow: 0 24px 60px rgba(30, 20, 15, 0.4);
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .stamp-dock.open .stamp-panel {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .stamp-panel h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .stamp-grid {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
+      overflow: visible;
+      padding-bottom: 0;
+    }
+
+    .stamp-button {
+      border: 1px solid var(--panel-edge);
+      background: #fdf9f1;
+      border-radius: 14px;
+      padding: 14px 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      gap: 6px;
+      font-size: 13px;
+      transition: transform 0.15s ease, background 0.15s ease;
+      min-width: 0;
+      flex: 1 1 0;
+    }
+
+    .stamp-button:hover {
+      transform: translateY(-2px);
+      background: #f4eadb;
+    }
+
+    .stamp-button svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .modal-actions button {
+      background: none;
+      border: none;
+      color: var(--ink);
+      cursor: pointer;
+      padding: 6px 8px;
+      font-family: inherit;
+    }
+
+    #config-view {
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+      display: none;
+      padding: 36px 40px;
+      overflow: auto;
+    }
+
+    #config-view.open {
+      display: block;
+    }
+
+    .config-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .config-header h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .config-header button {
+      border: 1px solid var(--panel-edge);
+      background: var(--button);
+      padding: 10px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .config-section {
+      margin-bottom: 32px;
+    }
+
+    .config-section h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #fbf7ee;
+      border: 1px solid var(--panel-edge);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+
+    .option-row input {
+      accent-color: var(--accent);
+    }
+
+    .palette-swatch {
+      display: inline-flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .palette-swatch span {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(20, 10, 5, 0.2);
+      display: inline-block;
+    }
+
+    .stamp-config {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      cursor: grab;
+    }
+
+    .stamp-config svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .stamp-config input[type="text"] {
+      border: 1px solid var(--panel-edge);
+      background: #fffaf2;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: inherit;
+    }
+
+    .stamp-config.dragging {
+      opacity: 0.55;
+      cursor: grabbing;
+    }
+
+    .stamp-config.drop-target {
+      outline: 2px dashed var(--accent);
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+
+    .color-choices {
+      display: flex;
+      gap: 6px;
+    }
+
+    .color-choices button {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(20, 10, 5, 0.2);
+      cursor: pointer;
+      background: transparent;
+      padding: 0;
+    }
+
+    .color-choices button.selected {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .year-switch {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .year-switch button {
+      border: 1px solid var(--panel-edge);
+      background: var(--button);
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .year-switch span {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    body.stamping-mode {
+      cursor: none;
+    }
+  </style>
+</head>
+<body>
+    <div id="app">
+      <div id="weekday-sticky" aria-hidden="true"></div>
+      <div id="calendar-view">
+        <div class="paper">
+          <svg id="calendar-svg" viewBox="0 0 1200 1800" preserveAspectRatio="xMidYMid meet" aria-label="Year calendar"></svg>
+        </div>
+      <div id="stamp-dock" class="stamp-dock">
+        <button id="stamp-button" class="floating-button" title="Grab a stamp">✶</button>
+        <div class="stamp-panel" role="dialog" aria-label="Select a stamp">
+          <h2>Choose a stamp</h2>
+          <div id="stamp-picker" class="stamp-grid"></div>
+          <div class="modal-actions">
+            <button id="open-config">Open settings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="config-view">
+      <div class="config-header">
+        <h1>Stamped Year</h1>
+        <button id="config-close">Back to Calendar</button>
+      </div>
+
+      <div class="config-section">
+        <h2>Year</h2>
+        <div class="year-switch">
+          <button id="year-prev">◀</button>
+          <span id="year-label"></span>
+          <button id="year-next">▶</button>
+        </div>
+      </div>
+
+      <div class="config-grid">
+        <div class="card">
+          <div class="config-section">
+            <h2>Stamp Set</h2>
+            <div id="stamp-set-options"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="config-section">
+            <h2>Ink Palette</h2>
+            <div id="palette-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <h2>Stamp Labels and Colors</h2>
+        <div id="stamp-configs"></div>
+      </div>
+
+      <div class="config-section">
+        <h2>Data</h2>
+        <button id="clear-stamps" type="button">Clear all stamps</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const STORAGE_KEY = "stamp-calendar-v1";
+    const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+
+    const STAMP_SETS = [
+      {
+        id: "botanical",
+        name: "Botanical",
+        stamps: [
+          { id: "leaf", name: "Leaf", path: "M50 6 C32 18 20 38 18 58 C16 78 24 92 38 98 C52 104 70 98 82 82 C94 66 98 40 86 22 C76 8 62 4 50 6 Z M48 18 C54 34 58 56 58 88" },
+          { id: "flower", name: "Flower", path: "M50 12 C56 24 70 26 82 22 C78 34 84 46 96 50 C84 54 78 66 82 78 C70 74 56 76 50 88 C44 76 30 74 18 78 C22 66 16 54 4 50 C16 46 22 34 18 22 C30 26 44 24 50 12 Z" },
+          { id: "clover", name: "Clover", path: "M38 40 C28 26 10 30 10 46 C10 58 22 64 34 60 C22 72 28 90 44 86 C54 84 58 74 56 64 C58 76 68 84 80 84 C96 84 100 68 92 58 C86 50 74 52 64 58 C74 46 70 28 54 26 C46 24 40 30 38 40 Z M50 60 L50 94" },
+          { id: "seed", name: "Seed", path: "M50 14 C60 22 72 38 72 56 C72 78 58 94 40 92 C28 90 20 74 22 56 C24 36 38 20 50 14 Z M50 26 C48 40 46 62 50 88" }
+        ]
+      },
+      {
+        id: "cozy",
+        name: "Cozy",
+        stamps: [
+          { id: "candle", name: "Candle", path: "M38 14 C40 8 46 6 50 14 C54 6 60 8 62 14 C66 24 58 34 50 40 C42 34 34 24 38 14 Z M36 44 L64 44 L62 92 L38 92 Z" },
+          { id: "star", name: "Star", path: "M50 10 L60 38 L90 38 L66 56 L74 86 L50 68 L26 86 L34 56 L10 38 L40 38 Z" },
+          { id: "heart", name: "Heart", path: "M50 86 C40 76 18 60 18 42 C18 28 30 18 42 22 C48 24 50 30 50 34 C50 30 52 24 58 22 C70 18 82 28 82 42 C82 60 60 76 50 86 Z" },
+          { id: "cup", name: "Cup", path: "M24 26 L76 26 L70 70 C68 80 60 86 50 86 C40 86 32 80 30 70 Z M76 32 C88 32 92 48 82 56 C78 60 74 60 70 58 L72 40 C72 36 74 32 76 32 Z" }
+        ]
+      }
+    ];
+
+    const PALETTES = [
+      { id: "forest", name: "Forest Ink", colors: ["#1f5132", "#3b6f4c", "#6b8f5a", "#9e7b4f"] },
+      { id: "roses", name: "Rose Ink", colors: ["#7a2e2f", "#b05b68", "#d27b8f", "#834c5c"] },
+      { id: "nocturne", name: "Nocturne", colors: ["#2f3a4a", "#415c72", "#6b7d8a", "#9a8f78"] }
+    ];
+
+    const state = loadState();
+
+    const calendarView = document.getElementById("calendar-view");
+    const calendarSvg = document.getElementById("calendar-svg");
+    const stampButton = document.getElementById("stamp-button");
+    const stampPicker = document.getElementById("stamp-picker");
+    const openConfig = document.getElementById("open-config");
+    const stampDock = document.getElementById("stamp-dock");
+    const configView = document.getElementById("config-view");
+    const configClose = document.getElementById("config-close");
+    const stampSetOptions = document.getElementById("stamp-set-options");
+    const paletteOptions = document.getElementById("palette-options");
+    const stampConfigs = document.getElementById("stamp-configs");
+    const weekdaySticky = document.getElementById("weekday-sticky");
+    const clearStampsButton = document.getElementById("clear-stamps");
+    const yearLabel = document.getElementById("year-label");
+    const yearPrev = document.getElementById("year-prev");
+    const yearNext = document.getElementById("year-next");
+
+    let grid = null;
+
+    function loadState() {
+      const currentYear = new Date().getFullYear();
+      const base = {
+        year: currentYear,
+        stampSetId: STAMP_SETS[0].id,
+        paletteId: PALETTES[0].id,
+        stampColors: {},
+        legend: {},
+        stampOrder: {},
+        entries: {},
+        ui: { viewMode: "calendar", stampingModeStampId: null }
+      };
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        const stampSet = STAMP_SETS[0];
+        stampSet.stamps.forEach((stamp, idx) => {
+          base.stampColors[stamp.id] = PALETTES[0].colors[idx % PALETTES[0].colors.length];
+          base.legend[stamp.id] = stamp.name;
+        });
+        return base;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return { ...base, ...parsed };
+      } catch {
+        return base;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function ensureDefaultsForStampSet() {
+      const stampSet = getStampSet();
+      stampSet.stamps.forEach((stamp, idx) => {
+        if (!state.legend[stamp.id]) state.legend[stamp.id] = stamp.name;
+        if (!state.stampColors[stamp.id]) {
+          const palette = getPalette();
+          state.stampColors[stamp.id] = palette.colors[idx % palette.colors.length];
+        }
+      });
+      ensureStampOrderForSet(stampSet.id);
+    }
+
+    function ensureStampOrderForSet(stampSetId) {
+      const stampSet = STAMP_SETS.find((s) => s.id === stampSetId);
+      if (!stampSet) return;
+      const defaultOrder = stampSet.stamps.map((s) => s.id);
+      const existing = Array.isArray(state.stampOrder[stampSetId]) ? state.stampOrder[stampSetId] : [];
+      const seen = new Set(existing);
+      const merged = existing.filter((id) => defaultOrder.includes(id));
+      defaultOrder.forEach((id) => {
+        if (!seen.has(id) && !merged.includes(id)) merged.push(id);
+      });
+      state.stampOrder[stampSetId] = merged;
+    }
+
+    function getOrderedStamps() {
+      const stampSet = getStampSet();
+      ensureStampOrderForSet(stampSet.id);
+      const order = state.stampOrder[stampSet.id];
+      const byId = new Map(stampSet.stamps.map((s) => [s.id, s]));
+      return order.map((id) => byId.get(id)).filter(Boolean);
+    }
+
+    function getStampSet() {
+      return STAMP_SETS.find((set) => set.id === state.stampSetId) || STAMP_SETS[0];
+    }
+
+    function getPalette() {
+      return PALETTES.find((palette) => palette.id === state.paletteId) || PALETTES[0];
+    }
+
+
+    function switchView(view) {
+      state.ui.viewMode = view;
+      if (view === "config") {
+        configView.classList.add("open");
+      } else {
+        configView.classList.remove("open");
+      }
+      updateStickyWeekdayHeadersLayout();
+      saveState();
+    }
+
+    function setStampingMode(stampId) {
+      state.ui.stampingModeStampId = stampId;
+      updateStampCursor();
+      saveState();
+    }
+
+    function clearStampingMode() {
+      state.ui.stampingModeStampId = null;
+      document.body.classList.remove("stamping-mode");
+      calendarSvg.style.cursor = "";
+      saveState();
+    }
+
+    function updateStampCursor() {
+      if (!state.ui.stampingModeStampId) return;
+      const stampSet = getStampSet();
+      const stamp = stampSet.stamps.find((s) => s.id === state.ui.stampingModeStampId);
+      if (!stamp) return;
+      const color = state.stampColors[stamp.id] || "#3a2f2a";
+      const size = 40;
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
+          <g opacity="0.7">
+            <path d="${stamp.path}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </svg>
+      `;
+      const encoded = encodeURIComponent(svg).replace(/%0A/g, "").replace(/%20/g, " ");
+      calendarSvg.style.cursor = `url(\"data:image/svg+xml,${encoded}\") ${size / 2} ${size / 2}, crosshair`;
+      document.body.classList.add("stamping-mode");
+    }
+
+    function syncStampingPill() {
+      return;
+    }
+
+    function hashString(str) {
+      let hash = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+      }
+      return hash >>> 0;
+    }
+
+    function mulberry32(seed) {
+      return function() {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function createLinePoints(x1, y1, x2, y2, seed) {
+      const rand = mulberry32(seed);
+      const points = [];
+      const segments = 8;
+      const dx = (x2 - x1) / segments;
+      const dy = (y2 - y1) / segments;
+      for (let i = 0; i <= segments; i++) {
+        const baseX = x1 + dx * i;
+        const baseY = y1 + dy * i;
+        const jitter = (rand() - 0.5) * 2;
+        const offset = jitter * 2.2;
+        const perpX = -dy;
+        const perpY = dx;
+        const len = Math.hypot(perpX, perpY) || 1;
+        const nx = perpX / len;
+        const ny = perpY / len;
+        points.push([baseX + nx * offset, baseY + ny * offset]);
+      }
+      return points.map((p) => p.join(",")).join(" ");
+    }
+
+    function buildGrid(year, width, height) {
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31);
+      const startMonday = new Date(start);
+      const startDay = (startMonday.getDay() + 6) % 7;
+      startMonday.setDate(startMonday.getDate() - startDay);
+      const endSunday = new Date(end);
+      const endDay = (endSunday.getDay() + 6) % 7;
+      endSunday.setDate(endSunday.getDate() + (6 - endDay));
+      const utcDay = (d) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      const totalDays = Math.round((utcDay(endSunday) - utcDay(startMonday)) / (1000 * 60 * 60 * 24));
+      const totalWeeks = Math.floor(totalDays / 7) + 1;
+
+      const minDim = Math.min(width || 1200, height || 1800);
+      const view = {
+        width: width || 1200,
+        height: height || 1800,
+        margin: Math.max(10, Math.min(18, minDim * 0.016))
+      };
+      const headerGap = Math.max(14, Math.min(24, minDim * 0.02));
+      const headerToGridGap = 6;
+      const topInset = view.margin + headerGap + headerToGridGap;
+      const bottomInset = view.margin;
+      const gridHeight = view.height - topInset - bottomInset;
+      const gridWidth = view.width - view.margin * 2;
+      const rows = totalWeeks;
+
+      const baseCol = gridWidth / 7;
+      const baseRow = gridHeight / rows;
+      const rng = mulberry32(hashString(`${year}-grid`));
+      const colWidths = new Array(7).fill(0).map(() => baseCol + (rng() - 0.5) * 6);
+      const colTotal = colWidths.reduce((sum, val) => sum + val, 0);
+      const colScale = gridWidth / colTotal;
+      for (let i = 0; i < colWidths.length; i++) colWidths[i] *= colScale;
+
+      const rowHeights = new Array(rows).fill(0).map(() => baseRow + (rng() - 0.5) * 5);
+      const rowTotal = rowHeights.reduce((sum, val) => sum + val, 0);
+      const rowScale = gridHeight / rowTotal;
+      for (let i = 0; i < rowHeights.length; i++) rowHeights[i] *= rowScale;
+
+      const xPositions = [view.margin];
+      for (let i = 0; i < colWidths.length; i++) {
+        xPositions.push(xPositions[i] + colWidths[i]);
+      }
+      const yPositions = [topInset];
+      for (let i = 0; i < rowHeights.length; i++) {
+        yPositions.push(yPositions[i] + rowHeights[i]);
+      }
+
+      const dateMap = new Map();
+      const weekMap = new Map();
+      for (let dayOffset = 0; dayOffset <= totalDays; dayOffset++) {
+        const d = new Date(startMonday);
+        d.setDate(startMonday.getDate() + dayOffset);
+        const weekIndex = Math.floor(dayOffset / 7);
+        const weekday = dayOffset % 7;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        weekMap.set(`${weekIndex}-${weekday}`, key);
+        if (d >= start && d <= end) dateMap.set(key, { weekIndex, weekday });
+      }
+
+      return {
+        year,
+        totalWeeks,
+        view,
+        xPositions,
+        yPositions,
+        dateMap,
+        weekMap
+      };
+    }
+
+    function renderGrid() {
+      const rect = calendarSvg.getBoundingClientRect();
+      const width = Math.max(900, rect.width || 1200);
+      const height = Math.max(900, rect.height || 1800);
+      calendarSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      grid = buildGrid(state.year, width, height);
+      const svg = calendarSvg;
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = `
+        <filter id="paperNoise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="2" />
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer>
+            <feFuncA type="table" tableValues="0 0.05" />
+          </feComponentTransfer>
+        </filter>
+        <filter id="inkBleed">
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="3" />
+          <feDisplacementMap in="SourceGraphic" scale="1.2" />
+          <feGaussianBlur stdDeviation="0.2" />
+        </filter>
+      `;
+      svg.appendChild(defs);
+
+      const noiseRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      noiseRect.setAttribute("x", 0);
+      noiseRect.setAttribute("y", 0);
+      noiseRect.setAttribute("width", grid.view.width);
+      noiseRect.setAttribute("height", grid.view.height);
+      noiseRect.setAttribute("filter", "url(#paperNoise)");
+      noiseRect.setAttribute("opacity", "0.6");
+      svg.appendChild(noiseRect);
+
+      const lineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      lineGroup.setAttribute("fill", "none");
+      lineGroup.setAttribute("stroke", "var(--ink)");
+      svg.appendChild(lineGroup);
+
+      const linesSeed = hashString(`${state.year}-lines`);
+      const lineRng = mulberry32(linesSeed);
+
+      for (let c = 0; c < grid.xPositions.length; c++) {
+        const x = grid.xPositions[c];
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        const seed = hashString(`${state.year}-v-${c}`);
+        line.setAttribute("points", createLinePoints(x, grid.yPositions[0], x, grid.yPositions[grid.yPositions.length - 1], seed));
+        line.setAttribute("stroke-width", (0.9 + lineRng() * 0.5).toFixed(2));
+        line.setAttribute("stroke-linecap", "round");
+        lineGroup.appendChild(line);
+      }
+
+      for (let r = 0; r < grid.yPositions.length; r++) {
+        const y = grid.yPositions[r];
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        const seed = hashString(`${state.year}-h-${r}`);
+        line.setAttribute("points", createLinePoints(grid.xPositions[0], y, grid.xPositions[grid.xPositions.length - 1], y, seed));
+        line.setAttribute("stroke-width", (0.9 + lineRng() * 0.5).toFixed(2));
+        line.setAttribute("stroke-linecap", "round");
+        lineGroup.appendChild(line);
+      }
+
+      const dateTextGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      dateTextGroup.setAttribute("fill", "var(--ink)");
+      dateTextGroup.setAttribute("font-family", "Cormorant Garamond, serif");
+      svg.appendChild(dateTextGroup);
+
+      for (const [key, info] of grid.dateMap.entries()) {
+        const [yearPart, monthPart, dayPart] = key.split("-").map(Number);
+        const localDate = new Date(yearPart, monthPart - 1, dayPart);
+        const col = info.weekday;
+        const row = info.weekIndex;
+        const xLeft = grid.xPositions[col];
+        const yTop = grid.yPositions[row];
+        const cellW = grid.xPositions[col + 1] - xLeft;
+        const cellH = grid.yPositions[row + 1] - yTop;
+
+        const dayText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const padX = Math.max(8, cellW * 0.06);
+        const padY = Math.max(14, cellH * 0.45);
+        dayText.setAttribute("x", xLeft + padX);
+        dayText.setAttribute("y", yTop + padY);
+        dayText.setAttribute("font-size", "13");
+        dayText.setAttribute("font-weight", "400");
+        if (dayPart === 1) {
+          dayText.setAttribute("font-family", "Gochi Hand, cursive");
+          dayText.setAttribute("font-size", "12");
+          dayText.setAttribute("letter-spacing", "1.4");
+          dayText.textContent = localDate.toLocaleString("en-US", { month: "short" }).toUpperCase();
+        } else {
+          dayText.textContent = String(dayPart);
+        }
+        dateTextGroup.appendChild(dayText);
+      }
+
+      const stampGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      stampGroup.setAttribute("id", "stamp-layer");
+      svg.appendChild(stampGroup);
+
+      renderStamps();
+      renderStickyWeekdayHeaders();
+    }
+
+    function renderStickyWeekdayHeaders() {
+      if (!grid || !weekdaySticky) return;
+      weekdaySticky.innerHTML = DAYS.map((day) => `<div class="weekday-sticky-item">${day}</div>`).join("");
+      updateStickyWeekdayHeadersLayout();
+    }
+
+    function updateStickyWeekdayHeadersLayout() {
+      if (!grid || !weekdaySticky) return;
+      const rect = calendarSvg.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const firstLinePx = rect.top + (grid.yPositions[0] / grid.view.height) * rect.height;
+      const headerBandHeight = Math.max(18, firstLinePx - 6);
+      weekdaySticky.style.top = "0px";
+      weekdaySticky.style.height = `${headerBandHeight}px`;
+      weekdaySticky.style.left = "0px";
+      weekdaySticky.style.width = "100vw";
+      weekdaySticky.style.gridTemplateColumns = "repeat(7, minmax(0, 1fr))";
+      weekdaySticky.style.display = configView.classList.contains("open") ? "none" : "grid";
+    }
+
+    function renderStamps() {
+      const stampLayer = document.getElementById("stamp-layer");
+      if (!stampLayer) return;
+      stampLayer.innerHTML = "";
+      const stampSet = getStampSet();
+      const stampById = new Map(stampSet.stamps.map((s) => [s.id, s]));
+      const stampSize = Math.max(32, grid.view.width * 0.03);
+      const yearEntries = state.entries[state.year] || {};
+
+      const getCellBounds = (dateKey) => {
+        const info = grid.dateMap.get(dateKey);
+        if (!info) return null;
+        const col = info.weekday;
+        const row = info.weekIndex;
+        const x0 = grid.xPositions[col];
+        const x1 = grid.xPositions[col + 1];
+        const y0 = grid.yPositions[row];
+        const y1 = grid.yPositions[row + 1];
+        return { x0, y0, w: x1 - x0, h: y1 - y0 };
+      };
+
+      Object.entries(yearEntries).forEach(([dateKey, stamps]) => {
+        const bounds = getCellBounds(dateKey);
+        if (!bounds) return;
+        stamps.forEach((stamp) => {
+          const stampDef = stampById.get(stamp.stampId);
+          if (!stampDef) return;
+          if (typeof stamp.relX !== "number" || typeof stamp.relY !== "number") return;
+          const drawX = bounds.x0 + stamp.relX * bounds.w;
+          const drawY = bounds.y0 + stamp.relY * bounds.h;
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          const transform = `translate(${drawX}, ${drawY}) rotate(${stamp.rotation}) translate(${-stampSize / 2}, ${-stampSize / 2})`;
+          g.setAttribute("transform", transform);
+          g.setAttribute("filter", "url(#inkBleed)");
+
+          const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          icon.setAttribute("width", stampSize);
+          icon.setAttribute("height", stampSize);
+          icon.setAttribute("viewBox", "0 0 100 100");
+          icon.innerHTML = `<path d="${stampDef.path}" fill="none" stroke="${stamp.color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />`;
+          g.appendChild(icon);
+          stampLayer.appendChild(g);
+        });
+      });
+    }
+
+    function renderStampPicker() {
+      const orderedStamps = getOrderedStamps();
+      stampPicker.innerHTML = orderedStamps.map((stamp) => {
+        const color = state.stampColors[stamp.id];
+        return `
+          <button class="stamp-button" data-stamp="${stamp.id}">
+            <svg viewBox="0 0 100 100" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="${stamp.path}" />
+            </svg>
+            <div>${state.legend[stamp.id] || stamp.name}</div>
+          </button>
+        `;
+      }).join("");
+
+      stampPicker.querySelectorAll(".stamp-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          const stampId = button.getAttribute("data-stamp");
+          setStampingMode(stampId);
+          stampDock.classList.remove("open");
+        });
+      });
+    }
+
+    function renderConfig() {
+      yearLabel.textContent = state.year;
+      stampSetOptions.innerHTML = STAMP_SETS.map((set) => {
+        const checked = set.id === state.stampSetId ? "checked" : "";
+        return `
+          <label class="option-row">
+            <input type="radio" name="stamp-set" value="${set.id}" ${checked} />
+            <div>${set.name}</div>
+          </label>
+        `;
+      }).join("");
+
+      paletteOptions.innerHTML = PALETTES.map((palette) => {
+        const checked = palette.id === state.paletteId ? "checked" : "";
+        const swatches = palette.colors.map((color) => `<span style="background:${color}"></span>`).join("");
+        return `
+          <label class="option-row">
+            <input type="radio" name="palette" value="${palette.id}" ${checked} />
+            <div>${palette.name}</div>
+            <div class="palette-swatch">${swatches}</div>
+          </label>
+        `;
+      }).join("");
+
+      const stampSet = getStampSet();
+      const orderedStamps = getOrderedStamps();
+      const palette = getPalette();
+      stampConfigs.innerHTML = orderedStamps.map((stamp) => {
+        const colorOptions = palette.colors.map((color) => {
+          const selected = state.stampColors[stamp.id] === color ? "selected" : "";
+          return `<button type="button" class="${selected}" data-color="${color}" style="background:${color}"></button>`;
+        }).join("");
+        return `
+          <div class="stamp-config" data-stamp="${stamp.id}" draggable="true">
+            <svg viewBox="0 0 100 100" fill="none" stroke="${state.stampColors[stamp.id]}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="${stamp.path}" />
+            </svg>
+            <input type="text" value="${state.legend[stamp.id] || stamp.name}" />
+            <div class="color-choices">${colorOptions}</div>
+          </div>
+        `;
+      }).join("");
+
+      stampConfigs.querySelectorAll(".stamp-config").forEach((row) => {
+        const stampId = row.getAttribute("data-stamp");
+        const input = row.querySelector("input");
+        input.addEventListener("input", () => {
+          state.legend[stampId] = input.value.trim() || getStampSet().stamps.find((s) => s.id === stampId).name;
+          saveState();
+          renderStampPicker();
+        });
+
+        row.querySelectorAll(".color-choices button").forEach((button) => {
+          button.addEventListener("click", () => {
+            const color = button.getAttribute("data-color");
+            state.stampColors[stampId] = color;
+            saveState();
+            renderConfig();
+            renderStampPicker();
+            renderStamps();
+          });
+        });
+      });
+
+      let dragSourceId = null;
+      stampConfigs.querySelectorAll(".stamp-config").forEach((row) => {
+        const rowId = row.getAttribute("data-stamp");
+        row.addEventListener("dragstart", (evt) => {
+          dragSourceId = rowId;
+          row.classList.add("dragging");
+          evt.dataTransfer.effectAllowed = "move";
+          evt.dataTransfer.setData("text/plain", rowId);
+        });
+        row.addEventListener("dragend", () => {
+          row.classList.remove("dragging");
+          stampConfigs.querySelectorAll(".stamp-config").forEach((n) => n.classList.remove("drop-target"));
+        });
+        row.addEventListener("dragover", (evt) => {
+          evt.preventDefault();
+          evt.dataTransfer.dropEffect = "move";
+        });
+        row.addEventListener("dragenter", (evt) => {
+          evt.preventDefault();
+          if (rowId !== dragSourceId) row.classList.add("drop-target");
+        });
+        row.addEventListener("dragleave", () => {
+          row.classList.remove("drop-target");
+        });
+        row.addEventListener("drop", (evt) => {
+          evt.preventDefault();
+          row.classList.remove("drop-target");
+          if (!dragSourceId || dragSourceId === rowId) return;
+          const order = [...state.stampOrder[stampSet.id]];
+          const from = order.indexOf(dragSourceId);
+          const to = order.indexOf(rowId);
+          if (from < 0 || to < 0) return;
+          const [moved] = order.splice(from, 1);
+          order.splice(to, 0, moved);
+          state.stampOrder[stampSet.id] = order;
+          saveState();
+          renderConfig();
+          renderStampPicker();
+        });
+      });
+
+      stampSetOptions.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("change", () => {
+          state.stampSetId = input.value;
+          ensureDefaultsForStampSet();
+          saveState();
+          renderConfig();
+          renderGrid();
+          renderStampPicker();
+        });
+      });
+
+      paletteOptions.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("change", () => {
+          state.paletteId = input.value;
+          ensureDefaultsForStampSet();
+          saveState();
+          renderConfig();
+          renderStampPicker();
+        });
+      });
+    }
+
+    function getDateKeyFromPoint(x, y) {
+      const indexForAxis = (positions, point) => {
+        const epsilon = 1.5;
+        const first = positions[0];
+        const last = positions[positions.length - 1];
+        const clamped = Math.min(last - 0.001, Math.max(first + 0.001, point));
+        for (let i = 0; i < positions.length - 1; i++) {
+          const left = positions[i] - epsilon;
+          const right = positions[i + 1] + epsilon;
+          if (clamped >= left && clamped <= right) return i;
+        }
+        return -1;
+      };
+
+      const col = indexForAxis(grid.xPositions, x);
+      const row = indexForAxis(grid.yPositions, y);
+      if (col < 0 || row < 0) return null;
+      const weekIndex = row;
+      const key = grid.weekMap.get(`${weekIndex}-${col}`);
+      if (!key) return null;
+      const keyYear = Number(key.slice(0, 4));
+      if (keyYear !== state.year) return null;
+      return key;
+    }
+
+    function placeStamp(evt) {
+      if (!state.ui.stampingModeStampId) return;
+      const rect = calendarSvg.getBoundingClientRect();
+      const x = ((evt.clientX - rect.left) / rect.width) * grid.view.width;
+      const y = ((evt.clientY - rect.top) / rect.height) * grid.view.height;
+      const dateKey = getDateKeyFromPoint(x, y);
+      if (!dateKey) return;
+      const info = grid.dateMap.get(dateKey);
+      if (!info) return;
+      const cellX0 = grid.xPositions[info.weekday];
+      const cellX1 = grid.xPositions[info.weekday + 1];
+      const cellY0 = grid.yPositions[info.weekIndex];
+      const cellY1 = grid.yPositions[info.weekIndex + 1];
+      const cellW = cellX1 - cellX0;
+      const cellH = cellY1 - cellY0;
+      const relX = Math.max(0, Math.min(1, (x - cellX0) / cellW));
+      const relY = Math.max(0, Math.min(1, (y - cellY0) / cellH));
+      const rotation = Math.round((Math.random() * 16 - 8) * 10) / 10;
+      const stamp = {
+        stampId: state.ui.stampingModeStampId,
+        color: state.stampColors[state.ui.stampingModeStampId],
+        relX,
+        relY,
+        rotation
+      };
+      if (!state.entries[state.year]) state.entries[state.year] = {};
+      if (!state.entries[state.year][dateKey]) state.entries[state.year][dateKey] = [];
+      state.entries[state.year][dateKey].push(stamp);
+      saveState();
+      renderStamps();
+      clearStampingMode();
+    }
+
+    function bindEvents() {
+      openConfig.addEventListener("click", () => {
+        switchView("config");
+      });
+      stampButton.addEventListener("mouseenter", () => {
+        stampDock.classList.add("open");
+      });
+      stampDock.addEventListener("mouseleave", () => {
+        stampDock.classList.remove("open");
+      });
+      configClose.addEventListener("click", () => switchView("calendar"));
+      yearPrev.addEventListener("click", () => {
+        state.year -= 1;
+        saveState();
+        renderGrid();
+        renderConfig();
+        renderStampPicker();
+      });
+      yearNext.addEventListener("click", () => {
+        state.year += 1;
+        saveState();
+        renderGrid();
+        renderConfig();
+        renderStampPicker();
+      });
+      clearStampsButton.addEventListener("click", () => {
+        const confirmed = window.confirm("Clear all placed stamps for all years?");
+        if (!confirmed) return;
+        state.entries = {};
+        saveState();
+        renderGrid();
+      });
+      calendarSvg.addEventListener("click", placeStamp);
+      window.addEventListener("resize", () => {
+        renderGrid();
+        updateStickyWeekdayHeadersLayout();
+      });
+      window.addEventListener("scroll", () => {
+        updateStickyWeekdayHeadersLayout();
+      }, { passive: true });
+      window.addEventListener("keydown", (evt) => {
+        if (evt.key === "Escape") {
+          clearStampingMode();
+        }
+      });
+    }
+
+    ensureDefaultsForStampSet();
+    requestAnimationFrame(() => renderGrid());
+    renderStampPicker();
+    renderConfig();
+    bindEvents();
+    const urlView = new URLSearchParams(window.location.search).get("view");
+    if (urlView === "config") {
+      switchView("config");
+    } else {
+      switchView(state.ui.viewMode === "config" ? "config" : "calendar");
+    }
+    syncStampingPill();
+    updateStampCursor();
+  </script>
+</body>
+</html>
