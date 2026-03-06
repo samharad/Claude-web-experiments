@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Python concurrency patterns and practice problems reference with syntax highlighting">
+    <title>Python Concurrency Reference</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background: #f0f0f0;
+            color: #222;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 240px;
+            min-width: 240px;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        #sidebar h1 {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #89b4fa;
+            padding: 0 1rem 0.75rem;
+            border-bottom: 1px solid #313244;
+            margin-bottom: 0.5rem;
+        }
+
+        .group-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #6c7086;
+            padding: 0.75rem 1rem 0.25rem;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 0.4rem 1rem;
+            font-size: 0.82rem;
+            color: #cdd6f4;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: background 0.1s, border-color 0.1s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-item:hover {
+            background: #313244;
+        }
+
+        .nav-item.active {
+            background: #313244;
+            border-left-color: #89b4fa;
+            color: #89b4fa;
+        }
+
+        /* Main content */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        #file-header {
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        #file-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #444;
+            font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+        }
+
+        #file-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            background: #e8f0fe;
+            color: #1a73e8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        #content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        /* Code view */
+        #content-area pre {
+            margin: 0;
+            padding: 1.5rem;
+            background: #fff;
+            border-radius: 0;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        #content-area pre code {
+            font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+            background: none;
+        }
+
+        /* Markdown view */
+        #content-area .md-body {
+            padding: 2rem 2.5rem;
+            max-width: 860px;
+            line-height: 1.7;
+        }
+
+        .md-body h1 { font-size: 1.6rem; margin-bottom: 1rem; color: #1a1a2e; }
+        .md-body h2 { font-size: 1.2rem; margin: 1.75rem 0 0.6rem; color: #2a2a4a; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3rem; }
+        .md-body h3 { font-size: 1rem; margin: 1.25rem 0 0.4rem; color: #333; }
+        .md-body p { margin-bottom: 0.85rem; color: #333; }
+        .md-body ul, .md-body ol { margin: 0.5rem 0 0.85rem 1.5rem; }
+        .md-body li { margin-bottom: 0.3rem; color: #333; }
+        .md-body code {
+            font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+            background: #f3f4f6;
+            padding: 0.15em 0.35em;
+            border-radius: 3px;
+            font-size: 0.85em;
+        }
+        .md-body pre {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+            margin: 0.75rem 0 1rem;
+        }
+        .md-body pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+        .md-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.75rem 0 1rem;
+            font-size: 0.875rem;
+        }
+        .md-body th {
+            background: #f3f4f6;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            border: 1px solid #d0d7de;
+            font-weight: 600;
+        }
+        .md-body td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d0d7de;
+        }
+        .md-body strong { font-weight: 600; }
+        .md-body blockquote {
+            border-left: 3px solid #89b4fa;
+            padding: 0.4rem 1rem;
+            color: #555;
+            background: #f8f9ff;
+            margin: 0.75rem 0;
+        }
+        .md-body hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+
+<nav id="sidebar">
+    <h1>py-concurrency</h1>
+
+    <div class="group-label">Docs</div>
+    <div class="nav-item" data-key="interview-spec">interview-spec.md</div>
+    <div class="nav-item" data-key="prep-plan">prep-plan.md</div>
+
+    <div class="group-label">Patterns</div>
+    <div class="nav-item" data-key="async-io">async-io.py</div>
+    <div class="nav-item" data-key="fan-out-fan-in">fan-out-fan-in.py</div>
+    <div class="nav-item" data-key="rate-limited-parallel-io">rate-limited-parallel-io.py</div>
+    <div class="nav-item" data-key="retry-with-backoff">retry-with-backoff.py</div>
+    <div class="nav-item" data-key="stream-processing">stream-processing.py</div>
+    <div class="nav-item" data-key="thread-queue">thread-queue.py</div>
+    <div class="nav-item" data-key="timeout-on-task">timeout-on-task.py</div>
+
+    <div class="group-label">Practice</div>
+    <div class="nav-item" data-key="batch-proc">batch-proc.py</div>
+    <div class="nav-item" data-key="batch-proc-better">batch-proc-better.py</div>
+    <div class="nav-item" data-key="parallel-api-rate-limiting">parallel-api-rate-limiting.py</div>
+    <div class="nav-item" data-key="parallel-api-rate-limiting-faster">parallel-api-rate-limiting-faster.py</div>
+    <div class="nav-item" data-key="producer-consumer-pipeline">producer-consumer-pipeline.py</div>
+    <div class="nav-item" data-key="stream-agg">stream-agg.py</div>
+</nav>
+
+<main id="main">
+    <div id="file-header">
+        <span id="file-title">Select a file</span>
+        <span id="file-badge" style="display:none"></span>
+    </div>
+    <div id="content-area"></div>
+</main>
+
+<script>
+const FILES = {
+    "interview-spec": {
+        type: "md",
+        label: "docs",
+        path: "interview-spec.md",
+        content: `# Interview Spec
+
+## Format
+- Duration: 55 minutes
+- Language: Python
+
+## Problem Style
+- Practical, real-world problem (actually encountered at Anthropic)
+- Not algorithm/LeetCode focused — emphasis is on practical engineering
+- Data structures / algorithms may appear but are not the primary focus
+- Concurrency / multi-threading is a likely topic
+
+## Candidate Background
+- Virtually no experience with async / concurrent / multi-threaded Python
+`
+    },
+    "prep-plan": {
+        type: "md",
+        label: "docs",
+        path: "prep-plan.md",
+        content: `# Interview Prep Plan
+
+## Goal
+Build enough practical Python concurrency knowledge to handle a real-world engineering problem confidently in 55 minutes.
+
+---
+
+## Phase 1: Concepts (understand before coding)
+
+### 1.1 Python concurrency models — know when to use which
+- **\`threading\`** — multiple threads, shared memory, good for I/O-bound work; limited by the GIL for CPU-bound work
+- **\`asyncio\`** — single-threaded cooperative multitasking, best for high-volume I/O (network, APIs); requires \`async/await\`
+- **\`concurrent.futures\`** — high-level interface over both threads (\`ThreadPoolExecutor\`) and processes (\`ProcessPoolExecutor\`); easiest to use correctly
+- **\`multiprocessing\`** — true parallelism for CPU-bound work; bypasses GIL
+
+**Rule of thumb for interviews:** I/O-bound → \`asyncio\` or \`ThreadPoolExecutor\`. CPU-bound → \`ProcessPoolExecutor\`.
+
+### 1.2 Core primitives to know
+- \`threading.Lock\`, \`threading.Event\`, \`threading.Semaphore\`
+- \`queue.Queue\` (thread-safe producer/consumer)
+- \`asyncio.Queue\`, \`asyncio.gather\`, \`asyncio.Semaphore\`
+- \`concurrent.futures.as_completed\`
+
+---
+
+## Phase 2: Patterns (the building blocks of real problems)
+
+Practice each of these with a small working script:
+
+| Pattern | Why it matters |
+|---|---|
+| Producer / consumer with a queue | Classic coordination problem |
+| Parallel I/O with rate limiting | Calling an API with concurrency cap |
+| Fan-out / fan-in | Dispatch N tasks, collect results |
+| Retry with backoff | Resilient network calls |
+| Timeout on a task | Don't hang forever |
+| Stream processing | Process items as they arrive |
+
+---
+
+## Phase 3: Practice Problems (in order of priority)
+
+### Problem 1 — Parallel API caller with rate limiting
+> Given a list of inputs, call a (simulated) API for each, with at most N concurrent requests. Collect and return all results.
+
+Covers: \`asyncio\` or \`ThreadPoolExecutor\`, semaphore, fan-out/fan-in.
+
+### Problem 2 — Producer / consumer pipeline
+> One thread produces work items; multiple worker threads consume and process them; results are collected by a collector thread.
+
+Covers: \`queue.Queue\`, \`threading\`, coordination/shutdown.
+
+### Problem 3 — Batch processor with timeout
+> Process items in batches; if a batch takes longer than T seconds, cancel it and move on. Report which batches succeeded/failed.
+
+Covers: timeouts, \`concurrent.futures\`, error handling.
+
+### Problem 4 — Stream aggregator
+> Read from a simulated stream of events; aggregate stats in real time (e.g., count events per type in a sliding window).
+
+Covers: thread-safe data structures, locks, real-time processing.
+
+---
+
+## Phase 4: Interview Execution
+
+### Time management (55 min)
+- **0–5 min**: Clarify requirements. Ask about: expected scale, error handling, ordering guarantees, retries.
+- **5–15 min**: Sketch the approach out loud. Name the concurrency model you'll use and why.
+- **15–45 min**: Write working code incrementally. Get something running, then improve.
+- **45–55 min**: Test with edge cases, discuss tradeoffs, suggest improvements.
+
+### What interviewers want to see
+- You ask clarifying questions before coding
+- You can name the concurrency primitive you're using and justify the choice
+- Your code actually runs and handles errors
+- You think about edge cases: what if a task fails? what if the queue is full? what about shutdown?
+- You communicate your thinking throughout
+
+### Common mistakes to avoid
+- Forgetting to handle exceptions inside threads/tasks (they get silently swallowed)
+- Not joining threads or awaiting coroutines (tasks may not complete)
+- Race conditions from sharing mutable state without locks
+- Deadlocks from acquiring locks in inconsistent order
+
+---
+
+## Reference Snippets
+
+### ThreadPoolExecutor fan-out
+\`\`\`python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def process(item):
+    ...  # do work
+    return result
+
+with ThreadPoolExecutor(max_workers=10) as executor:
+    futures = {executor.submit(process, item): item for item in items}
+    for future in as_completed(futures):
+        result = future.result()  # raises if the task raised
+\`\`\`
+
+### asyncio with semaphore (rate limiting)
+\`\`\`python
+import asyncio
+
+async def fetch(sem, item):
+    async with sem:
+        ...  # do async work
+        return result
+
+async def main(items, max_concurrent=10):
+    sem = asyncio.Semaphore(max_concurrent)
+    tasks = [fetch(sem, item) for item in items]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    return results
+\`\`\`
+
+### Thread-safe producer/consumer
+\`\`\`python
+import threading
+import queue
+
+q = queue.Queue()
+
+def producer(items):
+    for item in items:
+        q.put(item)
+    q.put(None)  # sentinel
+
+def consumer():
+    while True:
+        item = q.get()
+        if item is None:
+            break
+        ...  # process item
+
+t1 = threading.Thread(target=producer, args=(items,))
+t2 = threading.Thread(target=consumer)
+t1.start(); t2.start()
+t1.join(); t2.join()
+\`\`\`
+`
+    },
+    "async-io": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/async-io.py",
+        content: `import random
+import asyncio
+
+URLS = [f"https://example.com/{i}" for i in range(10)]
+
+async def fetch_url(u):
+    print(f"Fetching {u}...")
+    await asyncio.sleep(random.uniform(0.1, 0.5))
+    return f"response from {u}"
+
+async def fetch_all():
+    tasks = [fetch_url(u) for u in URLS]
+    for coro in asyncio.as_completed(tasks):
+        print(f"Result: {await coro}")
+
+def main():
+    asyncio.run(fetch_all())
+
+if __name__ == "__main__":
+    main()`
+    },
+    "fan-out-fan-in": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/fan-out-fan-in.py",
+        content: `from concurrent.futures import as_completed, ThreadPoolExecutor
+import time
+
+DOCUMENTS = [
+    "the quick brown fox",
+    "jumped over the lazy dog and then sat down for a while",
+    "hello world",
+    "python concurrency is actually not that bad once you get the hang of it",
+    "one",
+    "the cat sat on the mat and looked around",
+    "multiprocessing threading asyncio",
+    "a",
+    "fan out and fan in is a common pattern for parallel data processing pipelines",
+    "short doc here",
+]
+
+def process_doc(d):
+    print(f"Processing {d}...")
+    time.sleep(0.5)
+    print(f"Processed {d}")
+    return len(d.split())
+
+def main():
+    acc = []
+    with ThreadPoolExecutor() as e:
+        results = {e.submit(process_doc, d): d for d in DOCUMENTS}
+        for f in as_completed(results):
+            acc.append((f.result(), results[f]))
+
+    acc.sort(key=lambda tup: tup[0], reverse=True)
+    for (n, doc) in acc:
+        print(f"{n}: {doc}")
+
+if __name__ == "__main__":
+    main()`
+    },
+    "rate-limited-parallel-io": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/rate-limited-parallel-io.py",
+        content: `from concurrent.futures import ThreadPoolExecutor
+import time
+
+def fetch_entity(e):
+    print(f"Fetching {e}...")
+    time.sleep(0.5)
+    print(f"Fetched {e}")
+    return e
+
+def main():
+    start = time.perf_counter()
+    work = range(20)
+
+    with ThreadPoolExecutor(max_workers=5) as e:
+        results = e.map(fetch_entity, work)
+    end = time.perf_counter()
+    print(f"Done; time: {end - start}, results: {list(results)}")
+
+
+if __name__ == "__main__":
+    main()`
+    },
+    "retry-with-backoff": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/retry-with-backoff.py",
+        content: `import random
+import time
+
+
+def fetch(u):
+    print(f"Fetching {u}...")
+    if random.random() <= 0.6:
+        raise Exception("Network error")
+    return f"response from {u}"
+
+def fetch_with_retries(u):
+    max_attempts = 4
+    for attempt in range(max_attempts):
+        try:
+            res = fetch(u)
+            print(f"Res: {res}")
+            return res
+        except Exception as e:
+            to_sleep = 2**attempt
+            if attempt == max_attempts-1:
+                raise Exception(f"Failed to fetch {u} after {max_attempts} attempts")
+            print(f"Exception {e} on attempt {attempt+1}; sleeping {to_sleep}s...")
+            time.sleep(to_sleep)
+
+if __name__ == "__main__":
+    fetch_with_retries("fake")`
+    },
+    "stream-processing": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/stream-processing.py",
+        content: `import functools
+import queue
+import random
+import threading
+import time
+
+
+def produce(q):
+    produced = 0
+    while produced < 20:
+        event = {"type": random.choice(["click", "view", "purchase"]),
+                 "value": random.randint(1, 100)}
+        q.put(event)
+        produced += 1
+        time.sleep(0.1)
+
+def total_events(s):
+    ecs = s["event_counts"]
+    return sum(ecs.values())
+
+def consume(q, s):
+    while True:
+        event = q.get()
+        s["total_value"] += event["value"]
+        s["event_counts"][event["type"]] += 1
+        if total_events(s) % 5 == 0:
+            print(s)
+        q.task_done()
+
+
+
+def main():
+    q = queue.Queue()
+    state = {"total_value": 0,
+             "event_counts": {"click": 0,
+                              "view": 0,
+                              "purchase": 0}}
+    producer = threading.Thread(target=produce, args=(q,))
+    consumer = threading.Thread(target=consume, args=(q, state), daemon=True)
+
+    producer.start()
+    consumer.start()
+
+    producer.join()
+    q.join()
+    print(f"Final state: {state}")
+
+
+if __name__ == "__main__":
+    main()`
+    },
+    "thread-queue": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/thread-queue.py",
+        content: `import random
+import threading
+import time
+import queue
+
+URLS = [
+    "https://example.com/a",
+    "https://example.com/b",
+    "https://example.com/c",
+    "https://example.com/d",
+    "https://example.com/e",
+    "https://example.com/f",
+]
+
+def add_urls(q):
+    for u in URLS:
+        q.put(u)
+
+def download_url(u):
+    print(f"Downloading {u}...")
+    time.sleep(random.random())
+    print(f"Downloaded {u}")
+
+def process_urls(q):
+    while True:
+        u = q.get()
+        download_url(u)
+        q.task_done()
+
+
+def main():
+    q = queue.Queue()
+    producer = threading.Thread(target=add_urls, args=(q,))
+    workers = [threading.Thread(target=process_urls, args=(q,), daemon=True) for _ in range(3)]
+
+    for t in [*workers, producer]:
+        t.start()
+
+    # Wait for production to finish
+    producer.join()
+    # Then wait for consumtion to finish
+    q.join()
+    print("All URLs processed")
+
+if __name__ == "__main__":
+    main()`
+    },
+    "timeout-on-task": {
+        type: "py",
+        label: "patterns",
+        path: "src/patterns/timeout-on-task.py",
+        content: `import threading
+import time
+
+
+def slow_op(n):
+    print(f"slow_op sleeping {n}s...")
+    time.sleep(n)
+    print(f"done after {n}s")
+
+def run_with_timeout(n, timeout):
+    t = threading.Thread(target=slow_op, args=(n,), daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        print("timed out")
+    else:
+        print(f"done")
+
+if __name__ == "__main__":
+    run_with_timeout(1, 3)
+    run_with_timeout(5, 3)`
+    },
+    "batch-proc": {
+        type: "py",
+        label: "practice",
+        path: "src/practice/batch-proc.py",
+        content: `from concurrent.futures import wait, ThreadPoolExecutor
+import itertools
+import random
+import time
+
+TASKS = list(range(1, 31))
+
+def do_task(t):
+    print(f"Doing task {t}...")
+    do_hang = random.random() <= 0.15
+    delay = 10 if do_hang else random.uniform(0.1, 0.8)
+    time.sleep(delay)
+    print(f"Completed task {t}")
+    return f"result for task {t}"
+
+def proc_batch(executor, batch, state):
+    futures = {executor.submit(do_task, t): t for t in batch}
+    done, not_done = wait(futures, 2)
+    state["successes"] += len(done)
+    state["failed"].extend([futures[x] for x in not_done])
+    for f in not_done:
+        f.cancel()
+
+
+def main():
+    batches = itertools.batched(TASKS, 5)
+    state = {"successes": 0,
+             "failed": []}
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        for batch in batches:
+            proc_batch(executor, batch, state)
+    print(f"Done: {state}")
+
+
+if __name__ == "__main__":
+    main()`
+    },
+    "batch-proc-better": {
+        type: "py",
+        label: "practice",
+        path: "src/practice/batch-proc-better.py",
+        content: `import asyncio
+import itertools
+import random
+
+TASKS = list(range(1, 31))
+
+async def do_task(t):
+    print(f"Doing task {t}...")
+    do_hang = random.random() <= 0.15
+    delay = 10 if do_hang else random.uniform(0.1, 0.8)
+    await asyncio.sleep(delay)
+    print(f"Completed task {t}")
+    return f"result for task {t}"
+
+async def proc_batch(batch, state):
+    coros = [asyncio.create_task(do_task(t), name=str(t)) for t in batch]
+    done, not_done = await asyncio.wait(coros, timeout=2, return_when=asyncio.ALL_COMPLETED)
+    state["successes"] += len(done)
+    for failed in not_done:
+        state["failed"].append(int(failed.get_name()))
+        failed.cancel()
+
+async def main():
+    batches = itertools.batched(TASKS, 5)
+    state = {"successes": 0,
+             "failed": []}
+    for batch in batches:
+        await proc_batch(batch, state)
+
+    print(f"Done: {state}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())`
+    },
+    "parallel-api-rate-limiting": {
+        type: "py",
+        label: "practice",
+        path: "src/practice/parallel-api-rate-limiting.py",
+        content: `from concurrent.futures import as_completed, ThreadPoolExecutor
+import random
+import time
+
+USER_IDS = list(range(1, 26))
+
+def fetch_user_data(u):
+    delay = random.uniform(0.2, 0.8)
+    time.sleep(delay)
+    if random.random() <= 0.2:
+        raise Exception("failed")
+    return {"id": u, "name": f"User {u}"}
+
+def fetch_user_data_with_retries(u):
+    max_attempts = 3
+    for i in range(max_attempts):
+        try:
+            res = fetch_user_data(u)
+            return res
+        except Exception as e:
+            if i == max_attempts-1:
+                raise Exception(f"Failed to fetch {u}")
+            to_sleep = 2**i
+            time.sleep(to_sleep)
+    return None
+
+def main():
+    acc = {"succeeded": [],
+           "failed": []}
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        tasks = {executor.submit(fetch_user_data_with_retries, u): u for u in USER_IDS}
+        for f in as_completed(tasks):
+            try:
+                res = f.result()
+                acc["succeeded"].append(res)
+            except Exception as e:
+                acc["failed"].append(tasks[f])
+    print(f"Done: {acc}")
+
+
+if __name__ == "__main__":
+    main()`
+    },
+    "parallel-api-rate-limiting-faster": {
+        type: "py",
+        label: "practice",
+        path: "src/practice/parallel-api-rate-limiting-faster.py",
+        content: `import asyncio
+from concurrent.futures import as_completed, ThreadPoolExecutor
+import random
+import time
+
+USER_IDS = list(range(1, 26))
+
+SEM = asyncio.Semaphore(5)
+
+async def fetch_user_data(u):
+    print(f"Fetching {u}...")
+    delay = random.uniform(0.2, 0.8)
+    async with SEM:
+        await asyncio.sleep(delay)
+        res = random.random()
+    print(f"Feched {u}")
+    if res <= 0.4:
+        raise Exception("failed")
+    return {"id": u, "name": f"User {u}"}
+
+async def fetch_user_data_with_retries(u):
+    max_attempts = 3
+    for i in range(max_attempts):
+        try:
+            res = await fetch_user_data(u)
+            return res
+        except Exception as e:
+            if i == max_attempts-1:
+                raise Exception(u)
+            to_sleep = 2**i
+            await asyncio.sleep(to_sleep)
+    return None
+
+async def main():
+    acc = {"succeeded": [],
+           "failed": []}
+    tasks = [fetch_user_data_with_retries(u) for u in USER_IDS]
+    async for coro in asyncio.as_completed(tasks):
+        try:
+            res = await coro
+            acc["succeeded"].append(res)
+        except Exception as e:
+            acc["failed"].append(int(str(e)))
+    print(f"Done: {acc}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())`
+    },
+    "producer-consumer-pipeline": {
+        type: "py",
+        label: "practice",
+        path: "src/practice/producer-consumer-pipeline.py",
+        content: `import collections
+import queue
+import threading
+
+LOGS = [
+    "ERROR: disk full",
+    "INFO: user login",
+    "ERROR: connection timeout",
+    "INFO: file uploaded",
+    "WARNING: high memory usage",
+    "ERROR: null pointer exception",
+    "INFO: user logout",
+    "WARNING: slow query detected",
+    "ERROR: service unavailable",
+    "INFO: cache cleared",
+]
+
+def produce_logs(q):
+    for l in LOGS:
+        q.put(l)
+
+def process_logs(worker, inq, outq):
+    while True:
+        l = inq.get()
+        words = l.split(":")
+        level = words[0]
+        message = words[1][1:]
+        event = {"level": level,
+                 "message": message,
+                 "worker": worker}
+        outq.put(event)
+        inq.task_done()
+
+def agg_logs(q, s):
+    while True:
+        e = q.get()
+        l = e["level"]
+        s["counts"][l] += 1
+        if l == "ERROR":
+            s["errors"].append(e["message"])
+        q.task_done()
+
+def main():
+    input_q = queue.Queue()
+    events_q = queue.Queue()
+    producer = threading.Thread(target=produce_logs, args=(input_q,))
+    workers = [threading.Thread(target=process_logs, args=(i, input_q, events_q), daemon=True) for i in range(3)]
+
+    state = {"counts": collections.Counter(),
+             "errors": []}
+    aggregator = threading.Thread(target=agg_logs, args=(events_q, state), daemon=True)
+
+    producer.start()
+    for w in workers:
+        w.start()
+    aggregator.start()
+
+    producer.join()
+    input_q.join()
+    events_q.join()
+    print(f"Done: {state}")
+
+if __name__ == "__main__":
+    main()`
+    },
+    "stream-agg": {
+        type: "py",
+        label: "practice",
+        path: "src/practice/stream-agg.py",
+        content: `from collections import defaultdict, deque
+import queue
+import random
+import threading
+import time
+
+
+def produce(q):
+    for _ in range(20):
+        event = {"symbol": random.choice(["AAPL", "GOOG", "MSFT", "AMZN"]),
+                 "price": random.uniform(100, 200)}
+        q.put(event)
+        time.sleep(0.5)
+
+def snapshot(stocks):
+    acc = {}
+    for stock in stocks:
+        events = stocks[stock]
+        avg = sum(events) / len(events)
+        last = events[0]
+        acc[stock] = {"avg": avg, "last": last}
+    return acc
+
+def consume(q, s):
+    while True:
+        e = q.get()
+        s["stocks"][e["symbol"]].appendleft(e["price"])
+        s["total_events"] += 1
+        events = s["total_events"]
+        if events % 10 == 0:
+            print(f"Snapshot @ {events} events: {snapshot(s['stocks'])}")
+        q.task_done()
+
+def main():
+    q = queue.Queue()
+    state = {"stocks": defaultdict(lambda : deque(maxlen=20)),
+             "total_events": 0}
+    producer = threading.Thread(target=produce, args=(q,))
+    consumer = threading.Thread(target=consume, args=(q, state), daemon=True)
+
+    producer.start()
+    consumer.start()
+    producer.join()
+    q.join()
+
+    print(f"Final: {snapshot(state['stocks'])}")
+
+
+if __name__ == "__main__":
+    main()`
+    },
+};
+
+const BADGE_COLORS = {
+    docs:     { bg: "#fef3c7", color: "#92400e" },
+    patterns: { bg: "#e8f0fe", color: "#1a73e8" },
+    practice: { bg: "#e6f4ea", color: "#1e7e34" },
+};
+
+function showFile(key) {
+    const file = FILES[key];
+    if (!file) return;
+
+    // Update nav
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.key === key);
+    });
+
+    // Update header
+    document.getElementById('file-title').textContent = file.path;
+    const badge = document.getElementById('file-badge');
+    badge.textContent = file.label;
+    badge.style.display = '';
+    const colors = BADGE_COLORS[file.label] || {};
+    badge.style.background = colors.bg || '#eee';
+    badge.style.color = colors.color || '#333';
+
+    // Update content
+    const area = document.getElementById('content-area');
+    if (file.type === 'py') {
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.className = 'language-python';
+        code.textContent = file.content;
+        pre.appendChild(code);
+        area.innerHTML = '';
+        area.appendChild(pre);
+        hljs.highlightElement(code);
+    } else {
+        area.innerHTML = `<div class="md-body">${marked.parse(file.content)}</div>`;
+        area.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+    }
+
+    // Scroll to top
+    area.scrollTop = 0;
+}
+
+document.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', () => showFile(el.dataset.key));
+});
+
+// Show first file on load
+showFile('interview-spec');
+</script>
+</body>
+</html>
