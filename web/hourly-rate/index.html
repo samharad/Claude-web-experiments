@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Compare effective hourly rates across job offers or compensation packages">
+    <title>Effective Hourly Rate</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 2rem 1.5rem 4rem;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin: 0 0 0.25rem;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        /* Panels layout */
+        #panels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .panel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            width: 260px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+
+        /* Panel header */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .panel-name {
+            flex: 1;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            border: none;
+            border-bottom: 1px solid transparent;
+            padding: 0.1rem 0;
+            background: transparent;
+            font-family: inherit;
+            outline: none;
+            min-width: 0;
+        }
+
+        .panel-name:focus {
+            border-bottom-color: #4a90d9;
+        }
+
+        .panel-name::placeholder { color: #bbb; font-weight: 400; }
+
+        .remove-panel-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0 0.1rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .remove-panel-btn:hover { color: #e44; }
+
+        /* Inputs */
+        .field {
+            margin-bottom: 0.85rem;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.78rem;
+            color: #888;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-prefix, .input-suffix {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.9rem;
+            color: #aaa;
+            pointer-events: none;
+            line-height: 1;
+        }
+
+        .input-prefix { left: 0.55rem; }
+        .input-suffix { right: 0.55rem; }
+
+        .field input {
+            width: 100%;
+            padding: 0.5rem 0.6rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: #333;
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .field input:focus {
+            border-color: #4a90d9;
+            box-shadow: 0 0 0 2px rgba(74,144,217,0.18);
+            background: #fff;
+        }
+
+        .has-prefix input { padding-left: 1.5rem; }
+        .has-suffix input { padding-right: 2rem; }
+
+        /* Result */
+        .result {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+            text-align: center;
+        }
+
+        .result-rate {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #222;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+
+        .result-rate.empty { color: #ccc; font-size: 1.4rem; font-weight: 400; }
+
+        .result-label {
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-top: 0.3rem;
+        }
+
+        .result-detail {
+            font-size: 0.78rem;
+            color: #bbb;
+            margin-top: 0.55rem;
+        }
+
+        /* Add panel button */
+        #add-panel-btn {
+            width: 260px;
+            flex-shrink: 0;
+            height: 100%;
+            min-height: 80px;
+            background: #fff;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            color: #aaa;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            transition: border-color 0.15s, color 0.15s;
+            padding: 1.5rem;
+            align-self: stretch;
+        }
+
+        #add-panel-btn:hover {
+            border-color: #4a90d9;
+            color: #4a90d9;
+        }
+
+        .add-icon {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Effective Hourly Rate</h1>
+    <p class="subtitle">Compare compensation packages by actual hourly rate</p>
+
+    <div id="panels">
+        <button id="add-panel-btn"><span class="add-icon">+</span> Add offer</button>
+    </div>
+
+    <script>
+        let panels = [];
+        let nextId = 1;
+
+        const STORAGE_KEY = 'hourly-rate-panels';
+
+        const DEFAULTS = {
+            hoursPerWeek: 40,
+            vacationDays: 15,
+            holidays: 10,
+        };
+
+        function saveState() {
+            const state = panels.map(id => {
+                const el = document.getElementById('panel-' + id);
+                if (!el) return null;
+                return {
+                    name: el.querySelector('.panel-name').value,
+                    comp: el.querySelector('[data-field="comp"]').value.replace(/,/g, ''),
+                    hours: el.querySelector('[data-field="hours"]').value,
+                    vacation: el.querySelector('[data-field="vacation"]').value,
+                    holidays: el.querySelector('[data-field="holidays"]').value,
+                };
+            }).filter(Boolean);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                return saved ? JSON.parse(saved) : null;
+            } catch { return null; }
+        }
+
+        function calcRate(comp, hours, vacation, holidays) {
+            const workingDays = 260 - vacation - holidays; // 52*5
+            const workingHours = (workingDays / 5) * hours;
+            if (workingHours <= 0) return null;
+            return { rate: comp / workingHours, hours: workingHours };
+        }
+
+        function formatRate(rate) {
+            if (rate >= 1000) return '$' + (rate / 1000).toFixed(2) + 'k';
+            return '$' + rate.toFixed(2);
+        }
+
+        function formatHours(h) {
+            return Math.round(h).toLocaleString() + ' hrs/yr';
+        }
+
+        function getPanelValues(id) {
+            const el = document.getElementById('panel-' + id);
+            if (!el) return null;
+            const comp = parseFloat(el.querySelector('[data-field="comp"]').value.replace(/,/g, '')) || 0;
+            const hours = parseFloat(el.querySelector('[data-field="hours"]').value) || 0;
+            const vacation = parseFloat(el.querySelector('[data-field="vacation"]').value) || 0;
+            const holidays = parseFloat(el.querySelector('[data-field="holidays"]').value) || 0;
+            return { comp, hours, vacation, holidays };
+        }
+
+        function updateResults() {
+            const results = panels.map(id => {
+                const v = getPanelValues(id);
+                if (!v || v.comp <= 0 || v.hours <= 0) return { id, rate: null };
+                const r = calcRate(v.comp, v.hours, v.vacation, v.holidays);
+                return { id, rate: r ? r.rate : null, hours: r ? r.hours : null };
+            });
+
+            const validRates = results.filter(r => r.rate !== null).map(r => r.rate);
+            const maxRate = validRates.length ? Math.max(...validRates) : null;
+
+            results.forEach(({ id, rate, hours }) => {
+                const el = document.getElementById('panel-' + id);
+                if (!el) return;
+                const rateEl = el.querySelector('.result-rate');
+                const detailEl = el.querySelector('.result-detail');
+
+                if (rate !== null) {
+                    rateEl.textContent = formatRate(rate) + '/hr';
+                    rateEl.classList.remove('empty');
+                    detailEl.textContent = formatHours(hours);
+                } else {
+                    rateEl.textContent = '—';
+                    rateEl.classList.add('empty');
+                    detailEl.textContent = '';
+                }
+
+            });
+            saveState();
+        }
+
+        function createPanel(initial, autoFocus = true) {
+            const id = nextId++;
+            panels.push(id);
+
+            const d = initial || {};
+            const hoursVal = d.hours !== undefined ? d.hours : DEFAULTS.hoursPerWeek;
+            const vacationVal = d.vacation !== undefined ? d.vacation : DEFAULTS.vacationDays;
+            const holidaysVal = d.holidays !== undefined ? d.holidays : DEFAULTS.holidays;
+
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+            panel.id = 'panel-' + id;
+            panel.innerHTML = `
+                <div class="panel-header">
+                    <input class="panel-name" type="text" placeholder="Offer ${id}" maxlength="40" value="${(d.name || '').replace(/"/g, '&quot;')}">
+                    <button class="remove-panel-btn" title="Remove">&times;</button>
+                </div>
+                <div class="field">
+                    <label>Annual compensation</label>
+                    <div class="input-wrap has-prefix">
+                        <span class="input-prefix">$</span>
+                        <input type="text" inputmode="numeric" data-field="comp" placeholder="150,000">
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Hours per week</label>
+                    <div class="input-wrap has-suffix">
+                        <input type="number" data-field="hours" min="1" max="168" value="${hoursVal}">
+                        <span class="input-suffix">hrs</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Vacation days</label>
+                    <div class="input-wrap has-suffix">
+                        <input type="number" data-field="vacation" min="0" max="260" value="${vacationVal}">
+                        <span class="input-suffix">days</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Holidays</label>
+                    <div class="input-wrap has-suffix">
+                        <input type="number" data-field="holidays" min="0" max="260" value="${holidaysVal}">
+                        <span class="input-suffix">days</span>
+                    </div>
+                </div>
+                <div class="result">
+                    <div class="result-rate empty">—</div>
+                    <div class="result-label">effective hourly rate</div>
+                    <div class="result-detail"></div>
+                </div>
+            `;
+
+            // Remove button
+            panel.querySelector('.remove-panel-btn').addEventListener('click', () => {
+                panels = panels.filter(p => p !== id);
+                panel.remove();
+                updateResults();
+            });
+
+            // Comp input: format with commas on blur, strip on focus
+            const compInput = panel.querySelector('[data-field="comp"]');
+            if (d.comp) {
+                const raw = parseFloat(d.comp);
+                compInput.value = !isNaN(raw) && raw > 0 ? raw.toLocaleString('en-US') : '';
+            }
+            compInput.addEventListener('input', updateResults);
+            compInput.addEventListener('blur', () => {
+                const raw = parseFloat(compInput.value.replace(/,/g, ''));
+                if (!isNaN(raw) && raw > 0) {
+                    compInput.value = raw.toLocaleString('en-US');
+                }
+            });
+            compInput.addEventListener('focus', () => {
+                compInput.value = compInput.value.replace(/,/g, '');
+            });
+
+            // All other inputs
+            panel.querySelectorAll('[data-field="hours"], [data-field="vacation"], [data-field="holidays"]')
+                .forEach(inp => inp.addEventListener('input', updateResults));
+
+            panel.querySelector('.panel-name').addEventListener('input', saveState);
+
+            // Insert before the add button
+            const addBtn = document.getElementById('add-panel-btn');
+            addBtn.parentNode.insertBefore(panel, addBtn);
+
+            updateResults();
+
+            if (autoFocus) compInput.focus();
+
+            return panel;
+        }
+
+        document.getElementById('add-panel-btn').addEventListener('click', () => createPanel(null, true));
+
+        // Restore or initialize
+        const saved = loadState();
+        if (saved && saved.length > 0) {
+            saved.forEach(data => createPanel(data, false));
+        } else {
+            createPanel(null, false);
+            createPanel(null, false);
+        }
+    </script>
+</body>
+</html>
