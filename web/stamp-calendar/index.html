@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f1e6" />
   <title>Stamped Year</title>
   <meta name="description" content="A hand-inked year calendar for stamping daily rituals" />
   <style>
@@ -120,9 +121,9 @@
     }
 
     .stamp-dock {
-      position: absolute;
+      position: fixed;
       right: 24px;
-      bottom: 24px;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
       z-index: 20;
       display: grid;
       justify-items: end;
@@ -306,6 +307,9 @@
       padding: 6px 10px;
       border-radius: 8px;
       font-family: inherit;
+      width: 100%;
+      min-width: 0;
+      font-size: 16px;
     }
 
     .stamp-config.dragging {
@@ -359,12 +363,116 @@
       font-weight: 600;
     }
 
+    .stamping-pill {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(247, 241, 231, 0.98);
+      border: 1px solid var(--panel-edge);
+      border-radius: 999px;
+      padding: 8px 10px 8px 16px;
+      box-shadow: 0 12px 30px rgba(30, 20, 15, 0.3);
+      font-size: 15px;
+    }
+
+    .stamping-pill svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .stamping-pill button {
+      border: 1px solid var(--panel-edge);
+      background: var(--button);
+      color: var(--ink);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      display: grid;
+      place-items: center;
+    }
+
     .hidden {
+      display: none !important;
+    }
+
+    body.config-open .stamp-dock,
+    body.config-open .stamping-pill {
       display: none !important;
     }
 
     body.stamping-mode {
       cursor: none;
+    }
+
+    @media (max-width: 700px) {
+      .stamp-dock {
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        display: block;
+      }
+
+      .floating-button {
+        right: 0;
+        bottom: 0;
+      }
+
+      .stamp-panel {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 68px;
+        min-width: 0;
+        max-width: none;
+        padding: 14px 14px 10px;
+        border-radius: 16px;
+      }
+
+      .stamp-grid {
+        flex-wrap: wrap;
+      }
+
+      .stamp-button {
+        flex: 1 1 40%;
+        padding: 12px 6px;
+      }
+
+      .stamping-pill {
+        left: 12px;
+        transform: none;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px) + 68px);
+      }
+
+      #weekday-sticky {
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+
+      #config-view {
+        padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .config-header h1 {
+        font-size: 24px;
+      }
+
+      .stamp-config {
+        grid-template-columns: 32px 1fr auto;
+        gap: 8px;
+      }
+
+      .stamp-config svg {
+        width: 26px;
+        height: 26px;
+      }
     }
   </style>
 </head>
@@ -384,6 +492,11 @@
             <button id="open-config">Open settings</button>
           </div>
         </div>
+      </div>
+      <div id="stamping-pill" class="stamping-pill hidden">
+        <span id="stamping-pill-icon"></span>
+        <span id="stamping-pill-label"></span>
+        <button id="stamping-pill-cancel" type="button" title="Put the stamp down" aria-label="Cancel stamping">✕</button>
       </div>
     </div>
 
@@ -483,6 +596,7 @@
     const yearNext = document.getElementById("year-next");
 
     let grid = null;
+    let lastRenderWidth = 0;
 
     function loadState() {
       const currentYear = new Date().getFullYear();
@@ -563,9 +677,11 @@
       state.ui.viewMode = view;
       if (view === "config") {
         configView.classList.add("open");
+        stampDock.classList.remove("open");
       } else {
         configView.classList.remove("open");
       }
+      document.body.classList.toggle("config-open", view === "config");
       updateStickyWeekdayHeadersLayout();
       saveState();
     }
@@ -573,6 +689,7 @@
     function setStampingMode(stampId) {
       state.ui.stampingModeStampId = stampId;
       updateStampCursor();
+      syncStampingPill();
       saveState();
     }
 
@@ -580,6 +697,7 @@
       state.ui.stampingModeStampId = null;
       document.body.classList.remove("stamping-mode");
       calendarSvg.style.cursor = "";
+      syncStampingPill();
       saveState();
     }
 
@@ -603,7 +721,25 @@
     }
 
     function syncStampingPill() {
-      return;
+      const pill = document.getElementById("stamping-pill");
+      const stampId = state.ui.stampingModeStampId;
+      if (!stampId) {
+        pill.classList.add("hidden");
+        return;
+      }
+      const stamp = getStampSet().stamps.find((s) => s.id === stampId);
+      if (!stamp) {
+        pill.classList.add("hidden");
+        return;
+      }
+      const color = state.stampColors[stamp.id] || "#3a2f2a";
+      document.getElementById("stamping-pill-icon").innerHTML = `
+        <svg viewBox="0 0 100 100" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="${stamp.path}" />
+        </svg>
+      `;
+      document.getElementById("stamping-pill-label").textContent = `Tap a day to stamp “${state.legend[stamp.id] || stamp.name}”`;
+      pill.classList.remove("hidden");
     }
 
     function hashString(str) {
@@ -643,6 +779,15 @@
         points.push([baseX + nx * offset, baseY + ny * offset]);
       }
       return points.map((p) => p.join(",")).join(" ");
+    }
+
+    function countWeeks(year) {
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31);
+      const startDay = (start.getDay() + 6) % 7;
+      const endDay = (end.getDay() + 6) % 7;
+      const yearDays = Math.round((Date.UTC(year, 11, 31) - Date.UTC(year, 0, 1)) / 86400000) + 1;
+      return (yearDays + startDay + (6 - endDay)) / 7;
     }
 
     function buildGrid(year, width, height) {
@@ -719,8 +864,10 @@
 
     function renderGrid() {
       const rect = calendarSvg.getBoundingClientRect();
-      const width = Math.max(900, rect.width || 1200);
-      const height = Math.max(900, rect.height || 1800);
+      const width = Math.max(320, rect.width || 1200);
+      const minRowHeight = width < 700 ? 46 : 0;
+      const height = Math.max(width * 1.5, countWeeks(state.year) * minRowHeight + 80);
+      lastRenderWidth = width;
       calendarSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       grid = buildGrid(state.year, width, height);
       const svg = calendarSvg;
@@ -823,7 +970,12 @@
 
     function renderStickyWeekdayHeaders() {
       if (!grid || !weekdaySticky) return;
-      weekdaySticky.innerHTML = DAYS.map((day) => `<div class="weekday-sticky-item">${day}</div>`).join("");
+      const labels = grid.view.width < 480
+        ? DAYS.map((day) => day[0])
+        : grid.view.width < 900
+          ? DAYS.map((day) => day.slice(0, 3))
+          : DAYS;
+      weekdaySticky.innerHTML = labels.map((day) => `<div class="weekday-sticky-item">${day}</div>`).join("");
       updateStickyWeekdayHeadersLayout();
     }
 
@@ -847,7 +999,7 @@
       stampLayer.innerHTML = "";
       const stampSet = getStampSet();
       const stampById = new Map(stampSet.stamps.map((s) => [s.id, s]));
-      const stampSize = Math.max(32, grid.view.width * 0.03);
+      const stampSize = grid.view.width < 700 ? 26 : Math.max(32, grid.view.width * 0.03);
       const yearEntries = state.entries[state.year] || {};
 
       const getCellBounds = (dateKey) => {
@@ -1099,11 +1251,25 @@
       openConfig.addEventListener("click", () => {
         switchView("config");
       });
-      stampButton.addEventListener("mouseenter", () => {
-        stampDock.classList.add("open");
-      });
-      stampDock.addEventListener("mouseleave", () => {
-        stampDock.classList.remove("open");
+      const hoverCapable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      if (hoverCapable) {
+        stampButton.addEventListener("mouseenter", () => {
+          stampDock.classList.add("open");
+        });
+        stampDock.addEventListener("mouseleave", () => {
+          stampDock.classList.remove("open");
+        });
+      } else {
+        stampButton.addEventListener("click", () => {
+          stampDock.classList.toggle("open");
+        });
+        document.addEventListener("click", (evt) => {
+          if (!stampDock.classList.contains("open")) return;
+          if (!stampDock.contains(evt.target)) stampDock.classList.remove("open");
+        });
+      }
+      document.getElementById("stamping-pill-cancel").addEventListener("click", () => {
+        clearStampingMode();
       });
       configClose.addEventListener("click", () => switchView("calendar"));
       yearPrev.addEventListener("click", () => {
@@ -1129,7 +1295,8 @@
       });
       calendarSvg.addEventListener("click", placeStamp);
       window.addEventListener("resize", () => {
-        renderGrid();
+        const width = calendarSvg.getBoundingClientRect().width;
+        if (Math.abs(width - lastRenderWidth) > 1) renderGrid();
         updateStickyWeekdayHeadersLayout();
       });
       window.addEventListener("scroll", () => {
