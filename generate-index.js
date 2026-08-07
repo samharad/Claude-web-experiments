@@ -37,7 +37,14 @@ for (const dir of dirs) {
     try {
         modifiedISO = execSync(`git log -1 --format='%aI' -- "web/${dir}"`, { cwd: __dirname, encoding: 'utf8' }).trim();
     } catch (e) {
-        // fallback: no git history
+        // fallback below
+    }
+
+    // A brand-new tool has no git history yet when the pre-commit hook
+    // runs, which would leave it undated and sorted last under
+    // "Recently modified" — fall back to the file's mtime
+    if (!modifiedISO) {
+        modifiedISO = fs.statSync(indexPath).mtime.toISOString();
     }
 
     tools.push({
